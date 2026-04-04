@@ -1,14 +1,16 @@
 'use client'
 
 import { MiniLoader } from '@/components/ui/MiniLoader'
+import { Modal } from '@/components/ui/Modal'
 import { OWNER_PAGES } from '@/config/pages/owner.config'
 import productService from '@/services/product.service'
 import restaurantService from '@/services/restaurant.service'
-import { IProduct } from '@/types/product.types'
+import { IProduct, IProductUpdate } from '@/types/product.types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 
 export default function RestaurantMenuPage() {
@@ -17,6 +19,9 @@ export default function RestaurantMenuPage() {
 	const queryClient = useQueryClient()
 	const orgIdStr = orgId as string
 	const restIdStr = restId as string
+
+	const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null)
+	const [isEditing, setIsEditing] = useState(false)
 
 	const { data: restData, isLoading: restLoading, isError: restError } = useQuery({
 		queryKey: ['restaurant', restIdStr],
@@ -106,76 +111,263 @@ export default function RestaurantMenuPage() {
 
 						<div className="divide-y divide-zinc-800">
 							{products.map(product => (
-								<ProductRow
+								<div
 									key={product.idProduct}
-									product={product}
-									orgId={orgIdStr}
-									restId={restIdStr}
-									onDelete={() => queryClient.invalidateQueries({ queryKey: ['products', orgIdStr, restIdStr] })}
-								/>
+									onClick={() => { setSelectedProduct(product); setIsEditing(false) }}
+									className="grid grid-cols-5 gap-4 py-4 cursor-pointer hover:text-primary transition-colors"
+								>
+									<div className="col-span-2">
+										<p className="font-medium">{product.name}</p>
+										{product.description && (
+											<p className="text-sm text-zinc-500 truncate">{product.description}</p>
+										)}
+									</div>
+									<span className="text-zinc-400">{product.price.toFixed(2)} ₽</span>
+									<span className="text-zinc-400">{product.calories ? `${product.calories} kcal` : '—'}</span>
+									<span className="text-zinc-400">{product.timeCooking ? `${product.timeCooking} min` : '—'}</span>
+								</div>
 							))}
 						</div>
 					</div>
 				)}
 			</div>
+
+			{/* Product Detail / Edit Modal */}
+			<Modal isOpen={!!selectedProduct} onClose={() => { setSelectedProduct(null); setIsEditing(false) }}>
+				{selectedProduct && (
+					isEditing
+						? <ProductEditForm
+							product={selectedProduct}
+							orgId={orgIdStr}
+							restId={restIdStr}
+							onCancel={() => setIsEditing(false)}
+							onSuccess={() => {
+								setSelectedProduct(null)
+								setIsEditing(false)
+								queryClient.invalidateQueries({ queryKey: ['products', orgIdStr, restIdStr] })
+							}}
+						/>
+						: <ProductDetail
+							product={selectedProduct}
+							onEdit={() => setIsEditing(true)}
+							onDelete={() => {
+								setSelectedProduct(null)
+								setIsEditing(false)
+								queryClient.invalidateQueries({ queryKey: ['products', orgIdStr, restIdStr] })
+							}}
+							orgId={orgIdStr}
+							restId={restIdStr}
+						/>
+				)}
+			</Modal>
 		</div>
 	)
 }
 
-function ProductRow({ product, orgId, restId, onDelete }: {
+/* ── Product Detail View ── */
+function ProductDetail({ product, onEdit, onDelete, orgId, restId }: {
 	product: IProduct
+	onEdit: () => void
+	onDelete: () => void
 	orgId: string
 	restId: string
-	onDelete: () => void
 }) {
-	const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+	const [confirmDelete, setConfirmDelete] = useState(false)
 
 	const { mutate, isPending } = useMutation({
 		mutationFn: () => productService.remove(orgId, restId, product.idProduct),
 		onSuccess: () => {
 			toast.success('Dish deleted')
 			onDelete()
-			setConfirmDelete(null)
 		}
 	})
 
 	return (
-		<div className="grid grid-cols-5 gap-4 py-4 hover:text-primary transition-colors">
-			<div className="col-span-2">
-				<p className="font-medium">{product.name}</p>
+		<div>
+			<h2 className="text-xl font-bold mb-4">{product.name}</h2>
+
+			<div className="space-y-3 mb-6">
+				<div>
+					<span className="text-sm text-zinc-500 uppercase font-semibold">Price</span>
+					<p className="text-lg">{product.price.toFixed(2)} ₽</p>
+				</div>
+
 				{product.description && (
-					<p className="text-sm text-zinc-500 truncate">{product.description}</p>
+					<div>
+						<span className="text-sm text-zinc-500 uppercase font-semibold">Description</span>
+						<p className="text-sm mt-1">{product.description}</p>
+					</div>
 				)}
+
+				<div className="grid grid-cols-2 gap-4">
+					<div>
+						<span className="text-sm text-zinc-500 uppercase font-semibold">Calories</span>
+						<p className="text-sm mt-1">{product.calories ? `${product.calories} kcal` : '—'}</p>
+					</div>
+					<div>
+						<span className="text-sm text-zinc-500 uppercase font-semibold">Cooking time</span>
+						<p className="text-sm mt-1">{product.timeCooking ? `${product.timeCooking} min` : '—'}</p>
+					</div>
+				</div>
 			</div>
-			<span className="text-zinc-400">{product.price.toFixed(2)} ₽</span>
-			<span className="text-zinc-400">{product.calories ? `${product.calories} kcal` : '—'}</span>
-			<div className="flex items-center justify-between">
-				<span className="text-zinc-400">{product.timeCooking ? `${product.timeCooking} min` : '—'}</span>
-				{confirmDelete === product.idProduct ? (
+
+			<div className="flex gap-3">
+				<button
+					onClick={onEdit}
+					className="flex-1 bg-primary text-white py-2 rounded-md hover:bg-primary/90 transition text-sm"
+				>
+					Edit
+				</button>
+
+				{confirmDelete ? (
 					<div className="flex gap-2">
 						<button
 							onClick={() => mutate()}
 							disabled={isPending}
-							className="text-red-500 text-xs hover:underline disabled:opacity-50"
+							className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition text-sm disabled:opacity-50"
 						>
 							Confirm
 						</button>
 						<button
-							onClick={() => setConfirmDelete(null)}
-							className="text-zinc-500 text-xs hover:underline"
+							onClick={() => setConfirmDelete(false)}
+							className="bg-zinc-700 text-white px-4 py-2 rounded-md hover:bg-zinc-600 transition text-sm"
 						>
 							Cancel
 						</button>
 					</div>
 				) : (
 					<button
-						onClick={() => setConfirmDelete(product.idProduct)}
-						className="text-red-500 text-xs hover:underline"
+						onClick={() => setConfirmDelete(true)}
+						className="bg-red-600/20 text-red-400 border border-red-600/50 px-4 py-2 rounded-md hover:bg-red-600/30 transition text-sm"
 					>
 						Delete
 					</button>
 				)}
 			</div>
+		</div>
+	)
+}
+
+/* ── Product Edit Form ── */
+function ProductEditForm({ product, orgId, restId, onCancel, onSuccess }: {
+	product: IProduct
+	orgId: string
+	restId: string
+	onCancel: () => void
+	onSuccess: () => void
+}) {
+	const { register, handleSubmit, formState: { errors } } = useForm<IProductUpdate>({
+		defaultValues: {
+			name: product.name,
+			price: product.price,
+			description: product.description || '',
+			calories: product.calories,
+			timeCooking: product.timeCooking
+		}
+	})
+
+	const { mutate, isPending } = useMutation({
+		mutationFn: (data: IProductUpdate) => productService.update(orgId, restId, product.idProduct, data),
+		onSuccess: () => {
+			toast.success('Dish updated')
+			onSuccess()
+		},
+		onError: (error: any) => {
+			const message = error.response?.data?.message || 'Failed to update dish'
+			toast.error(typeof message === 'string' ? message : message[0])
+		}
+	})
+
+	const onSubmit = (data: IProductUpdate) => {
+		const dto: IProductUpdate = {
+			name: data.name?.trim(),
+			price: data.price !== undefined ? parseFloat(data.price.toFixed(2)) : undefined,
+			description: data.description?.trim() || undefined,
+			calories: data.calories,
+			timeCooking: data.timeCooking
+		}
+		mutate(dto)
+	}
+
+	return (
+		<div>
+			<h2 className="text-xl font-bold mb-4">Edit Dish</h2>
+
+			<form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+				<div>
+					<label className="block text-xs font-medium mb-1 text-zinc-400">Name *</label>
+					<input
+						{...register('name', { required: 'Name is required', minLength: { value: 2, message: 'Min 2 characters' } })}
+						type="text"
+						className="w-full px-3 py-2 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 bg-zinc-800 text-sm"
+					/>
+					{errors.name && <span className="text-red-500 text-xs">{errors.name.message}</span>}
+				</div>
+
+				<div>
+					<label className="block text-xs font-medium mb-1 text-zinc-400">Price (₽) *</label>
+					<input
+						{...register('price', { required: 'Price is required', min: { value: 0.01, message: 'Must be > 0' }, valueAsNumber: true })}
+						type="number"
+						step="0.01"
+						min="0"
+						className="w-full px-3 py-2 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 bg-zinc-800 text-sm"
+					/>
+					{errors.price && <span className="text-red-500 text-xs">{errors.price.message}</span>}
+				</div>
+
+				<div>
+					<label className="block text-xs font-medium mb-1 text-zinc-400">Description</label>
+					<textarea
+						{...register('description')}
+						className="w-full px-3 py-2 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 bg-zinc-800 text-sm"
+						rows={2}
+					/>
+				</div>
+
+				<div className="grid grid-cols-2 gap-3">
+					<div>
+						<label className="block text-xs font-medium mb-1 text-zinc-400">Calories</label>
+						<input
+							{...register('calories', { valueAsNumber: true, validate: (v) => v === undefined || v >= 0 || 'Cannot be negative' })}
+							type="number"
+							step="1"
+							min="0"
+							className="w-full px-3 py-2 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 bg-zinc-800 text-sm"
+						/>
+						{errors.calories && <span className="text-red-500 text-xs">{errors.calories.message}</span>}
+					</div>
+
+					<div>
+						<label className="block text-xs font-medium mb-1 text-zinc-400">Cooking time (min)</label>
+						<input
+							{...register('timeCooking', { valueAsNumber: true, validate: (v) => v === undefined || (Number.isInteger(v) && v >= 0) || 'Must be positive integer' })}
+							type="number"
+							step="1"
+							min="0"
+							className="w-full px-3 py-2 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 bg-zinc-800 text-sm"
+						/>
+						{errors.timeCooking && <span className="text-red-500 text-xs">{errors.timeCooking.message}</span>}
+					</div>
+				</div>
+
+				<div className="flex gap-3 pt-2">
+					<button
+						type="submit"
+						disabled={isPending}
+						className="flex-1 bg-primary text-white py-2 rounded-md hover:bg-primary/90 transition text-sm disabled:opacity-50"
+					>
+						{isPending ? <MiniLoader width={16} height={16} /> : 'Save'}
+					</button>
+					<button
+						type="button"
+						onClick={onCancel}
+						className="bg-zinc-700 text-white px-4 py-2 rounded-md hover:bg-zinc-600 transition text-sm"
+					>
+						Cancel
+					</button>
+				</div>
+			</form>
 		</div>
 	)
 }

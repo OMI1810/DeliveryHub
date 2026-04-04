@@ -128,7 +128,7 @@ model Order {
   address    Address    @relation(fields: [addressId], references: [idAddress])
   client     User       @relation(fields: [clientId], references: [idUser])
   restaraunt Restaurant @relation(fields: [restarauntId], references: [idRestaurant])
-  products   Product[]
+  products   OrderProduct[]
 
   @@map("orders")
 }
@@ -141,12 +141,27 @@ model Product {
   calories    Float?
   description String?
 
-  orders Order[]
+  orders     OrderProduct[]
 
   restaurantId String     @map("restaurant_id")
   restaurant   Restaurant @relation(fields: [restaurantId], references: [idRestaurant])
 
   @@map("products")
+}
+
+model OrderProduct {
+  idOrderProduct String @id @default(cuid()) @map("id_order_product")
+
+  quantity Int @default(1)
+
+  orderId   String  @map("order_id")
+  productId String  @map("product_id")
+
+  order   Order   @relation(fields: [orderId], references: [idOrder], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [idProduct])
+
+  @@unique([orderId, productId])
+  @@map("order_products")
 }
 
 model Organization {

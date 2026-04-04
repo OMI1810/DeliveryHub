@@ -38,26 +38,39 @@ export class AddressService {
   }
 
   async create(userId: string, dto: CreateAddressDto) {
-    const { lat, lon } = await this.geocodeAddress(dto);
-
-    const address = await this.prisma.address.create({
-      data: {
-        address: dto.address,
-        entrance: dto.entrance ? Number(dto.entrance) : null,
-        doorphone: dto.doorphone,
-        flat: dto.flat,
-        floor: dto.floor,
-        comment: dto.comment,
-        cordinatY: lat,
-        cordinatX: lon,
-        addressUser: {
-          create: { userId },
-        },
-      },
-      include: { addressUser: true },
+    const user = await this.prisma.user.findUnique({
+      where: { idUser: userId },
     });
 
-    return address;
+    if (!user) {
+      throw new NotFoundException("Пользователь не найден");
+    }
+
+    const geo = await this.geocodeAddress(dto);
+
+    return this.prisma.$transaction(async (tx) => {
+      const address = await tx.address.create({
+        data: {
+          address: geo.displayName || dto.address,
+          entrance: dto.entrance ? Number(dto.entrance) : null,
+          doorphone: dto.doorphone,
+          flat: dto.flat,
+          floor: dto.floor,
+          comment: dto.comment,
+          cordinatY: geo.lat,
+          cordinatX: geo.lon,
+        },
+      });
+
+      await tx.addressUser.create({
+        data: {
+          userId,
+          addressId: address.idAddress,
+        },
+      });
+
+      return address;
+    });
   }
 
   async update(id: string, userId: string, dto: UpdateAddressDto) {
@@ -72,18 +85,9 @@ export class AddressService {
     if (dto.flat !== undefined) updateData.flat = dto.flat;
     if (dto.floor !== undefined) updateData.floor = dto.floor;
     if (dto.comment !== undefined) updateData.comment = dto.comment;
-
-    // Если переданы данные для геокодирования — обновляем координаты
-    if (dto.city || dto.country || dto.postalcode) {
-      const fullAddress =
-        `${dto.country || ""}, ${dto.city || ""}, ${dto.address || ""}, ${dto.postalcode || ""}`.trim();
-      if (fullAddress.length > 0) {
-        const { lat, lon } =
-          await this.geocoodingService.geocodeOSM(fullAddress);
-        updateData.cordinatY = lat;
-        updateData.cordinatX = lon;
-      }
-    }
+    const { lat, lon } = await this.geocoodingService.geocodeOSM(dto.address);
+    updateData.cordinatY = lat;
+    updateData.cordinatX = lon;
 
     return this.prisma.address.update({
       where: { idAddress: id },
@@ -105,10 +109,21 @@ export class AddressService {
   }
 
   private async geocodeAddress(dto: CreateAddressDto) {
-    const query = `${dto.country}, ${dto.city}, ${dto.address}, ${dto.postalcode}`;
-
+    // Если координаты переданы напрямую (клик по карте) — используем их
+    if (dto.lat !== undefined && dto.lon !== undefined) {
+      // Если адрес не указан — определяем по координатам
+      if (!dto.address) {
+        const geo = await this.geocoodingService.reverseGeocode(
+          dto.lat,
+          dto.lon,
+        );
+        return { lat: dto.lat, lon: dto.lon, displayName: geo.displayName };
+      }
+      return { lat: dto.lat, lon: dto.lon, displayName: dto.address };
+    }
+    // Иначе геокодируем адрес
     try {
-      return await this.geocoodingService.geocodeOSM(query);
+      return await this.geocoodingService.geocodeOSM(dto.address);
     } catch {
       throw new BadRequestException("Не удалось определить координаты адреса");
     }

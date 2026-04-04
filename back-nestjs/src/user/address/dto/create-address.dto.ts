@@ -1,35 +1,40 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator'
 
 export class CreateAddressDto {
-  @IsString()
-  @IsNotEmpty()
-  address: string;
+	@IsString()
+	@IsNotEmpty()
+	address: string
 
-  @IsOptional()
-  @IsString()
-  entrance?: string;
+	@IsOptional()
+	@IsString()
+	entrance?: string
 
-  @IsOptional()
-  @IsString()
-  doorphone?: string;
+	@IsOptional()
+	@IsString()
+	doorphone?: string
 
-  @IsOptional()
-  @IsString()
-  flat?: string;
+	@IsOptional()
+	@IsString()
+	flat?: string
 
-  @IsOptional()
-  @IsString()
-  floor?: string;
+	@IsOptional()
+	@IsString()
+	floor?: string
 
-  @IsOptional()
-  @IsString()
-  comment?: string;
+	@IsOptional()
+	@IsString()
+	comment?: string
 
-  @IsOptional()
-  @IsNumber()
-  lat?: number;
+	// Поля для геокодирования
+	@IsString()
+	@IsNotEmpty()
+	city: string
 
-  @IsOptional()
-  @IsNumber()
-  lon?: number;
+	@IsString()
+	@IsNotEmpty()
+	country: string
+
+	@IsString()
+	@IsNotEmpty()
+	postalcode: string
 }

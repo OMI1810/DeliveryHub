@@ -1,0 +1,395 @@
+================================================================================
+                          DELIVERYHUB — ПРЕЗЕНТАЦИЯ ПРОЕКТА
+                    Агрегатор для службы доставки (Fullstack)
+================================================================================
+
+СЛАЙД 1: О ПРОЕКТЕ
+--------------------------------------------------------------------------------
+
+DeliveryHub — полнофункциональный агрегатор для службы доставки.
+Fullstack-приложение с аутентификацией, управлением организациями, заказами,
+корзинами и адресами на картах.
+
+Параметр            | Значение
+--------------------|----------------------------------------------------------
+Бэкенд              | NestJS 11, TypeScript, PostgreSQL, Prisma 6
+Фронтенд            | Next.js 15 (App Router), React 19, Tailwind CSS 4
+База данных         | PostgreSQL, 11 моделей, 2 enum'а
+Код                 | ~47 файлов бэкенд + ~70 файлов фронтенд
+Репозиторий         | https://github.com/OMI1810/DeliveryHub
+
+
+СЛАЙД 2: СИСТЕМА АУТЕНТИФИКАЦИИ
+--------------------------------------------------------------------------------
+
+Реализовано:
+
+  • Email + Password — регистрация и вход, хеширование паролей через argon2
+  • JWT Access Token (1 час) + Refresh Token (7 дней, httpOnly cookie)
+  • Верификация email по ссылке с одноразовым токеном
+    (React Email шаблоны + SMTP через nodemailer)
+  • SMS/WhatsApp OTP — 4-значный код через Infobip API (5 минут TTL)
+  • Автоматический refresh токенов:
+    — На клиенте: axios interceptor ловит 401, вызывает /auth/access-token
+    — На сервере: middleware.ts верифицирует JWT через jose и обновляет
+
+Роли пользователей (enum Role):
+
+  GOD          — супер-администратор, полный доступ ко всему
+  MODERATOR    — модератор, доступ к организациям и управлению
+  OWNER        — владелец организации (назначается автоматически при создании)
+  CLIENT       — клиент по умолчанию при регистрации
+  DELIVERYMAN  — курьер (зарезервирована, логика в разработке)
+
+
+СЛАЙД 3: УПРАВЛЕНИЕ ОРГАНИЗАЦИЯМИ (OWNER PANEL)
+--------------------------------------------------------------------------------
+
+Функционал:
+
+  • Создание нескольких организаций одним пользователем (связь 1:N)
+  • Панель владельца: /owner — список организаций (минималистичная сетка)
+  • Страница организации: /owner/organization/:id
+    — Название, email, телефон
+    — Заглушка для будущих модулей (рестораны, меню, заказы)
+  • Автоматическое назначение роли OWNER при создании организации
+  • Валидация телефона с авто-форматированием:
+    Ввод:  +79991234567 → Отображение: +7 999 123 45 67
+  • Компонент PhoneInput с авто-подстановкой пробелов и валидацией
+  • Валидация телефона на бэкенде через @Matches(/^\+?\d{10,15}$/)
+  • Проверка доступа: только владелец / GOD / MODERATOR
+
+Маршруты:
+  /owner                    — список организаций
+  /owner/create             — форма создания организации
+  /owner/organization/:id   — страница организации (не модалка!)
+
+
+СЛАЙД 4: СИСТЕМА ЗАКАЗОВ
+--------------------------------------------------------------------------------
+
+Модель:
+
+  • Заказы (Order) со статусами:
+    CREATED → COOKING → FROM_DELIVERYMAN → DELIVERED
+  • OrderProduct — связь заказ ↔ продукт с полем quantity (явная модель)
+  • payStatus — флаг оплаты (boolean)
+
+Валидация при создании заказа:
+
+  • Ресторан существует
+  • Адрес принадлежит пользователю
+  • Продукты принадлежат ресторану
+  • Транзакционное создание — атомарность данных
+
+Эндпоинты:
+  GET  /api/orders         — мои заказы
+  GET  /api/orders/:id     — заказ по ID (проверка владения)
+  POST /api/orders         — создать заказ
+
+
+СЛАЙД 5: КОРЗИНА (CART)
+--------------------------------------------------------------------------------
+
+Функционал:
+
+  • Мульти-ресторанная корзина на localStorage
+  • Группировка товаров по restaurantId
+  • Управление: +/- quantity, удаление товара, полная очистка
+  • CartIcon с бейджем количества (subscribe/notify паттерн)
+  • CheckoutForm — модалка оформления заказа:
+    — Выбор адреса из списка
+    — Создание Order через API
+  • Хук useCart() — полное управление корзиной:
+    carts, totalItems, addToCart, updateQuantity,
+    removeFromCart, clearCart, clearAll, getCartTotal
+
+Компоненты:
+  CartIcon           — иконка корзины с бейджем
+  AddToCartButton    — кнопка "В корзину" с анимацией подтверждения
+  RestaurantCart     — карточка корзины конкретного ресторана
+  CheckoutForm       — модалка оформления заказа
+
+
+СЛАЙД 6: АДРЕСА С КАРТАМИ
+--------------------------------------------------------------------------------
+
+Реализовано:
+
+  • Leaflet карта (react-leaflet, OpenStreetMap) с кастомным маркером
+  • ArcGIS геокодер — автоподсказки адресов (suggest API)
+  • Точное определение адреса по magicKey (ArcGIS find)
+  • Обратное геокодирование (координаты → адрес)
+  • Клик по карте → обратное геокодирование → заполнение полей
+
+Поля адреса:
+  • Адрес (строка)
+  • Квартира, этаж, подъезд, домофон
+  • Комментарий
+  • Координаты (cordinatX, cordinatY)
+
+CRUD с проверкой владения — пользователь видит только свои адреса
+
+Эндпоинты:
+  GET    /api/users/addresses          — все адреса пользователя
+  GET    /api/users/addresses/:id      — конкретный адрес
+  POST   /api/users/addresses          — создать адрес (автогеокодирование)
+  PATCH  /api/users/addresses/:id      — обновить адрес
+  DELETE /api/users/addresses/:id      — удалить адрес
+
+
+СЛАЙД 7: ROLE-BASED ACCESS CONTROL
+--------------------------------------------------------------------------------
+
+Уровень        | Механизм
+---------------|---------------------------------------------------------------
+Бэкенд         | @Auth(Role.GOD), RolesGuard — проверка ролей из JWT payload
+Фронтенд       | middleware.ts + jose JWT verify на сервере
+Редиректы      | Неавторизованные → /404 (admin) или /auth/login (dashboard)
+
+Защита маршрутов (middleware.ts):
+
+  /auth/*        → protectLoginPages: если авторизован → редирект на /dashboard/profile
+  /admin/*       → protectAdminPages: требует GOD роль, иначе → 404
+  /manager/*     → protectAdminPages: требует OWNER или MODERATOR, иначе → 404
+  /dashboard/*   → protectDashboardPages: требует любой валидный токен
+  /owner/*       → protectDashboardPages: требует любой валидный токен
+
+Декораторы на бэкенде:
+  @Auth()              — требует JWT (JwtAuthGuard)
+  @Auth(Role.GOD)      — требует JWT + роль GOD
+  @CurrentUser('id')   — извлекает поле из текущего пользователя
+  @Roles(roles)        — устанавливает метаданные для RolesGuard
+
+
+СЛАЙД 8: АРХИТЕКТУРА ПРОЕКТА
+--------------------------------------------------------------------------------
+
+DeliveryHub/
+├── back-nestjs/                          ← Бэкенд (NestJS)
+│   ├── src/
+│   │   ├── auth/                         ← JWT, SMS/OTP, email, refresh tokens
+│   │   │   ├── strategies/jwt.strategy.ts
+│   │   │   ├── guards/jwt.guard.ts, roles.guard.ts
+│   │   │   ├── sms/sms-auth.controller.ts, sms-auth.service.ts
+│   │   │   ├── decorators/auth.decorator.ts, user.decorator.ts
+│   │   │   ├── auth.controller.ts, auth.service.ts
+│   │   │   └── refresh-token.service.ts
+│   │   ├── user/                         ← Профиль, адреса
+│   │   │   ├── user.controller.ts, user.service.ts
+│   │   │   └── address/
+│   │   │       ├── address.controller.ts, address.service.ts
+│   │   │       └── dto/create-address.dto.ts, update-address.dto.ts
+│   │   ├── organization/                 ← Организации, владелец
+│   │   │   ├── organization.controller.ts, organization.service.ts
+│   │   │   └── dto/create-organization.dto.ts
+│   │   ├── order/                        ← Заказы, OrderProduct
+│   │   │   ├── order.controller.ts, order.service.ts
+│   │   │   └── dto/create-order.dto.ts
+│   │   ├── geocooding/                   ← ArcGIS API (геокодирование)
+│   │   │   └── geocooding.controller.ts, geocooding.service.ts
+│   │   ├── email/                        ← SMTP + React Email
+│   │   │   └── email.service.ts
+│   │   ├── sms/                          ← Infobip API (SMS/WhatsApp)
+│   │   │   └── sms.service.ts
+│   │   ├── config/jwt.config.ts          ← JWT конфигурация
+│   │   ├── prisma.service.ts             ← Prisma Client singleton
+│   │   └── app.module.ts                 ← 8 модулей
+│   ├── prisma/
+│   │   ├── schema.prisma                 ← 11 моделей, 2 enum'а
+│   │   └── migrations/                   ← 4 миграции
+│   └── emails/                           ← React Email шаблоны
+│
+└── front-next-js-auth-4/                 ← Фронтенд (Next.js 15)
+    └── src/
+        ├── app/                          ← Next.js App Router (11 страниц)
+        │   ├── auth/login/, auth/register/
+        │   ├── dashboard/profile/, addresses/, cart/
+        │   ├── admin/, manager/
+        │   └── owner/, owner/create/, owner/organization/[id]/
+        ├── components/ui/                ← Переиспользуемые компоненты
+        │   ├── PhoneInput.tsx            ← Форматированный ввод телефона
+        │   ├── Modal.tsx                 ← Модальное окно (framer-motion)
+        │   ├── MiniLoader.tsx            ← Анимированный спиннер
+        │   ├── CartIcon.tsx              ← Иконка корзины с бейджем
+        │   └── AddToCartButton.tsx       ← Кнопка "В корзину"
+        ├── services/                     ← API сервисы
+        │   ├── auth/auth.service.ts, auth-token.service.ts
+        │   ├── organization.service.ts
+        │   ├── address.service.ts
+        │   ├── cart.service.ts           ← localStorage
+        │   ├── arcgis.service.ts         ← Геокодирование
+        │   └── phone-auth.service.ts     ← SMS/WhatsApp OTP
+        ├── hooks/                        ← React Query хуки
+        │   ├── useCart.ts                ← Управление корзиной
+        │   └── useProfile.ts             ← Профиль с авто-рефрешем
+        ├── utils/                        ← Утилиты
+        │   ├── phone.ts                  ← formatPhone, validatePhone, cleanPhone
+        │   └── classNames.ts             ← cn() (clsx + tailwind-merge)
+        ├── api/                          ← Axios instance + interceptors
+        │   ├── axios.ts                  ← axiosClassic + instance (с refresh)
+        │   └── api.helper.ts
+        ├── server-actions/middlewares/   ← Middleware для route protection
+        ├── config/pages/                 ← Конфигурация маршрутов
+        └── types/                        ← TypeScript типы
+            ├── auth.types.ts, user.types.ts
+            ├── address.types.ts, cart.types.ts
+            ├── organization.types.ts, arcgis.types.ts
+
+
+СЛАЙД 9: ТЕХНОЛОГИЧЕСКИЙ СТЕК
+--------------------------------------------------------------------------------
+
+BACKEND (NestJS 11):
+  @nestjs/*               — фреймворк (common, core, config, jwt, passport)
+  Prisma 6 + PostgreSQL   — ORM, миграции, типобезопасные запросы
+  Passport JWT            — стратегия аутентификации
+  argon2                  — хеширование паролей
+  class-validator         — DTO валидация (@IsEmail, @Matches, @MinLength)
+  nodemailer              — SMTP отправка email
+  @react-email/components — React-шаблоны для email
+  axios                   — HTTP-клиент (Infobip, ArcGIS)
+  cookie-parser           — парсинг cookies
+  lodash                  — утилиты (omit)
+
+FRONTEND (Next.js 15 + React 19):
+  Next.js 15 (App Router) — серверные и клиентские компоненты
+  TypeScript 5            — строгая типизация
+  Tailwind CSS 4          — утилитарные стили
+  @tanstack/react-query   — управление server state
+  react-hook-form         — управление формами
+  axios                   — HTTP-клиент с auto-refresh interceptors
+  framer-motion           — анимации (Modal)
+  leaflet + react-leaflet — интерактивные карты
+  jose                    — JWT верификация на сервере (middleware)
+  react-hot-toast         — уведомления
+  clsx + tailwind-merge   — объединение классов
+
+
+СЛАЙД 10: БАЗА ДАННЫХ (Prisma Schema)
+--------------------------------------------------------------------------------
+
+Модели (11):
+
+  User              — основной пользователь (email, phone, password, ФИО)
+  UserRole          — роли пользователя (уникальная пара userId + role)
+  Shift             — смены курьеров (createAt, stopAt)
+  Address           — адреса с координатами
+  AddressUser       — связь User ↔ Address (уникальная пара)
+  AddressRestaraunt — связь Restaurant ↔ Address
+  Organization      — организация-владелец ресторанов
+  Restaurant        — ресторан (название, кухня, время работы)
+  Product           — продукт ресторана (название, калории, время готовки)
+  Order             — заказ (статус, оплата, клиент, ресторан, адрес)
+  OrderProduct      — связь Order ↔ Product с полем quantity
+
+Enum'ы (2):
+
+  Role     — GOD, MODERATOR, CLIENT, OWNER, DELIVERYMAN
+  Status   — CREATED, COOKING, FROM_DELIVERYMAN, DELIVERED
+
+Ключевые связи:
+  User 1--* UserRole (CASCADE)
+  User 1--* AddressUser (CASCADE) *--1 Address
+  User 1--* Organization (1:N — владелец может иметь много организаций)
+  User 1--* Order (клиент)
+  Organization 1--* Restaurant
+  Restaurant 1--* Product
+  Restaurant 1--* Order
+  Order *--* Product через OrderProduct (с quantity)
+
+Миграции (4):
+  20260404105221_move_roles_to_table               — роли в отдельной таблице
+  20260404171907_remove_unique_owner_id_on_organizations — 1:N User↔Organization
+  20260404170205_add_order_product                  — явная модель OrderProduct
+  20260404185021_update_order_product                — индексы
+
+
+СЛАЙД 11: КЛЮЧЕВЫЕ API ENDPOINTS
+--------------------------------------------------------------------------------
+
+Аутентификация:
+  POST /api/auth/login             — вход (email + password)
+  POST /api/auth/register          — регистрация + верификация email
+  GET  /verify-email?token=        — подтверждение email
+  POST /api/auth/access-token      — обновление токенов (refresh cookie)
+  POST /api/auth/logout            — выход (удаление refresh cookie)
+  POST /api/auth/sms/send-code     — отправка OTP (SMS/WhatsApp)
+  POST /api/auth/sms/verify-code   — верификация OTP
+
+Пользователь:
+  GET  /api/users/profile          — мой профиль
+  PATCH /api/users/update-email    — обновление email
+  GET  /api/users/list             — все пользователи (только GOD)
+
+Организации:
+  GET  /api/owner/init             — список организаций владельца
+  POST /api/organizations          — создать организацию
+  GET  /api/organizations/:id      — организация по ID (проверка доступа)
+
+Адреса:
+  GET    /api/users/addresses      — все адреса пользователя
+  GET    /api/users/addresses/:id  — конкретный адрес
+  POST   /api/users/addresses      — создать адрес (автогеокодирование)
+  PATCH  /api/users/addresses/:id  — обновить адрес
+  DELETE /api/users/addresses/:id  — удалить адрес
+
+Заказы:
+  GET  /api/orders                 — мои заказы
+  GET  /api/orders/:id             — заказ по ID
+  POST /api/orders                 — создать заказ
+
+Геокодирование (ArcGIS):
+  GET  /api/geocooding             — геокодирование адреса
+  GET  /api/geocooding/suggest?q=  — автоподсказки
+  GET  /api/geocooding/find?magicKey= — точное определение
+  GET  /api/geocooding/reverse?lat=&lon= — обратное геокодирование
+
+
+СЛАЙД 12: АРХИТЕКТУРНЫЕ ПАТТЕРНЫ
+--------------------------------------------------------------------------------
+
+  Module-based (NestJS)    — 8 модулей, каждый отвечает за свою область
+  Guard/Decorator          — @Auth(), RolesGuard, JwtAuthGuard
+  Strategy (Passport)      — JwtStrategy для JWT аутентификации
+  Repository (Prisma)      — PrismaService как singleton, типобезопасные запросы
+  Service Layer            — отдельные сервисы для каждой доменной области
+  DTO + ValidationPipe     — все входные данные валидируются через class-validator
+  Transaction              — создание адреса и заказа — в $transaction
+  Feature-Sliced (частично)— app/, components/, services/, hooks/, types/
+  App Router (Next.js)     — app/ директория, layout.tsx, page.tsx, metadata
+  Middleware Pattern       — middleware.ts для route protection
+  Interceptor Pattern      — axios: auto-refresh токенов по 401
+  Pub/Sub                  — CartIcon: subscribeToCartChanges() / notifyCartChange()
+  SSR/CSR Mix              — server-variation.tsx для серверного рендера,
+                             dynamic() для SSR-safe карт
+
+
+СЛАЙД 13: КЛЮЧЕВЫЕ РЕШЕНИЯ И ИНВАРИАНТЫ
+--------------------------------------------------------------------------------
+
+  • Refresh Token в httpOnly cookie — защита от XSS
+  • Access Token в Authorization header — стандартный подход
+  • ignoreExpiration: true в JwtStrategy — проверка на уровне middleware
+  • PhoneInput: форматирование на клиенте, cleanPhone() перед отправкой
+  • Корзина на localStorage — не требует авторизации
+  • OrderProduct — явная модель (вместо implicit m2m) для поля quantity
+  • Организация: 1:N с User (один пользователь — много организаций)
+  • Маршрутизация вместо модалок — /owner/organization/:id как отдельная страница
+  • Prisma: @@unique для составных ключей, @@index для производительности
+
+
+СЛАЙД 14: ЧТО В РАЗРАБОТКЕ
+--------------------------------------------------------------------------------
+
+  • Страницы ресторана (меню, управление)
+  • Логика курьера (Shift, доставка)
+  • Оплата заказов
+  • Уведомления (push, email)
+  • Админ-панель (управление пользователями, организациями)
+  • Панель менеджера (управление заказами)
+  • Аналитика и статистика
+
+================================================================================
+                              КОНЕЦ ПРЕЗЕНТАЦИИ
+================================================================================

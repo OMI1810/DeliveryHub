@@ -5,7 +5,9 @@ import {
 	Controller,
 	Get,
 	HttpCode,
+	Param,
 	Patch,
+	Post,
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
@@ -37,5 +39,57 @@ export class UserController {
 	@Get('list')
 	async getList() {
 		return this.userService.getUsers()
+	}
+
+	@Auth()
+	@Get('shift')
+	async getShiftState(@CurrentUser('idUser') userId: string) {
+		return this.userService.getShiftState(userId)
+	}
+
+	@Auth()
+	@HttpCode(200)
+	@Post('shift/start')
+	async startShift(@CurrentUser('idUser') userId: string) {
+		return this.userService.startShift(userId)
+	}
+
+	@Auth()
+	@HttpCode(200)
+	@Post('shift/stop')
+	async stopShift(@CurrentUser('idUser') userId: string) {
+		return this.userService.stopShift(userId)
+	}
+
+	@Auth()
+	@Get('orders/discovery')
+	async getOrdersDiscovery() {
+		return this.userService.getOrderDiscoveryList()
+	}
+
+	@Auth(Role.DELIVERYMAN)
+	@Get('orders/active')
+	async getActiveOrder(@CurrentUser('idUser') userId: string) {
+		return this.userService.getActiveCourierOrder(userId)
+	}
+
+	@Auth(Role.DELIVERYMAN)
+	@HttpCode(200)
+	@Post('orders/:orderId/accept')
+	async acceptOrder(
+		@CurrentUser('idUser') userId: string,
+		@Param('orderId') orderId: string
+	) {
+		return this.userService.acceptOrder(userId, orderId)
+	}
+
+	@Auth(Role.DELIVERYMAN)
+	@HttpCode(200)
+	@Post('orders/:orderId/delivered')
+	async completeOrderDelivery(
+		@CurrentUser('idUser') userId: string,
+		@Param('orderId') orderId: string
+	) {
+		return this.userService.completeOrderDelivery(userId, orderId)
 	}
 }

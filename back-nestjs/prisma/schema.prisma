@@ -42,7 +42,8 @@ model User {
   role      UserRole[]
   shifts    Shift[]
   address   AddressUser[]
-  orders    Order[]
+  orders         Order[] @relation("ClientOrders")
+  deliveryOrders Order[] @relation("CourierOrders")
   organizations Organization[]
 
   @@map("users")
@@ -118,15 +119,18 @@ model Order {
 
   payStatus Boolean @default(false) @map("pay_status")
   status    Status
+  weight    Float? @map("weight")
 
   createAt DateTime @default(now()) @map("created_at")
 
   clientId     String @map("client_id")
+  deliverymanId String? @map("deliveryman_id")
   restarauntId String @map("restaraunt_id")
   addressId    String @map("address_id")
 
   address    Address    @relation(fields: [addressId], references: [idAddress])
-  client     User       @relation(fields: [clientId], references: [idUser])
+  client     User       @relation("ClientOrders", fields: [clientId], references: [idUser])
+  deliveryman User?     @relation("CourierOrders", fields: [deliverymanId], references: [idUser])
   restaraunt Restaurant @relation(fields: [restarauntId], references: [idRestaurant])
   products   OrderProduct[]
 

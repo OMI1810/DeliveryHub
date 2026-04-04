@@ -12,7 +12,6 @@ import {
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
-import { Role } from "@prisma/client";
 import { AddressService } from "./address.service";
 import { CreateAddressDto } from "./dto/create-address.dto";
 import { UpdateAddressDto } from "./dto/update-address.dto";
@@ -34,18 +33,6 @@ export class AddressController {
     @Param("id") id: string,
   ) {
     return this.addressService.getById(id, userId);
-  }
-
-  // Для тестирования — создание адреса для произвольного пользователя (только GOD)
-  @Auth(Role.GOD)
-  @UsePipes(new ValidationPipe())
-  @HttpCode(201)
-  @Post("by-user/:userId")
-  async createByUserId(
-    @Param("userId") userId: string,
-    @Body() dto: CreateAddressDto,
-  ) {
-    return this.addressService.create(userId, dto);
   }
 
   @UsePipes(new ValidationPipe())

@@ -10,7 +10,10 @@
       "Bash(git merge *)",
       "Bash(findstr *)",
       "Bash(type *)",
-      "Bash(del *)"
+      "Bash(del *)",
+      "Bash(git push *)",
+      "Bash(git remote *)",
+      "Bash(git *)"
     ]
   },
   "$version": 3

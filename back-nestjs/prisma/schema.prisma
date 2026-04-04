@@ -41,7 +41,7 @@ model User {
 
   role      UserRole[]
   shifts    Shift[]
-  addresses Address[]
+  address   AddressUser[]
   orders    Order[]
 
   organization Organization?
@@ -85,12 +85,33 @@ model Address {
   cordinatY Float
   cordinatX Float
 
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [idUser])
+  addressUser AddressUser[]
+  addressRestaraunt AddressRestaraunt?
   orders Order[]
-  restaurant Restaurant?
 
   @@map("addresses")
+}
+
+model AddressUser{
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [idUser], onDelete: Cascade)
+
+  addressId String @map("address_id")
+  address   Address   @relation(fields: [addressId], references: [idAddress], onDelete: Cascade)
+
+  @@unique([userId, addressId])
+  @@map("address_user")
+}
+
+model AddressRestaraunt{
+  restaurantId String @unique @map("restataunt_id")
+  restaurant Restaurant @relation(fields: [restaurantId], references: [idRestaurant], onDelete: Cascade)
+
+  addressId String @unique @map("address_id")
+  address   Address   @relation(fields: [addressId], references: [idAddress], onDelete: Cascade)
+
+  @@unique([restaurantId, addressId])
+  @@map("address_restaurant")
 }
 
 model Order {
@@ -154,11 +175,10 @@ model Restaurant {
   timeOpened DateTime @db.Time(0) @map("time_opened")
   timeClosed DateTime @db.Time(0) @map("time_closed")
 
-  addressId String @unique @map("address_id")
-  address Address @relation(fields: [addressId], references: [idAddress])
-
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [idOrganization])
+
+  address AddressRestaraunt?
 
   products Product[]
   orders   Order[]

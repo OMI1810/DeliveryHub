@@ -17,32 +17,30 @@ export class AddressService {
   ) {}
 
   async getAllByUserId(userId: string) {
-    return this.prisma.address.findMany({
+    return this.prisma.addressUser.findMany({
       where: { userId },
-      orderBy: { address: "asc" },
+      include: { address: true },
+      orderBy: { address: { address: "asc" } },
     });
   }
 
   async getById(id: string, userId: string) {
-    const address = await this.prisma.address.findUnique({
-      where: { idAddress: id },
+    const relation = await this.prisma.addressUser.findUnique({
+      where: { userId_addressId: { userId, addressId: id } },
+      include: { address: true },
     });
 
-    if (!address) {
+    if (!relation) {
       throw new NotFoundException("Адрес не найден");
     }
 
-    if (address.userId !== userId) {
-      throw new ForbiddenException("Доступ запрещён");
-    }
-
-    return address;
+    return relation.address;
   }
 
   async create(userId: string, dto: CreateAddressDto) {
     const { lat, lon } = await this.geocodeAddress(dto);
 
-    return this.prisma.address.create({
+    const address = await this.prisma.address.create({
       data: {
         address: dto.address,
         entrance: dto.entrance ? Number(dto.entrance) : null,
@@ -52,15 +50,28 @@ export class AddressService {
         comment: dto.comment,
         cordinatY: lat,
         cordinatX: lon,
-        userId,
+        addressUser: {
+          create: { userId },
+        },
       },
+      include: { addressUser: true },
     });
+
+    return address;
   }
 
   async update(id: string, userId: string, dto: UpdateAddressDto) {
     await this.getById(id, userId);
 
-    const updateData: Record<string, unknown> = { ...dto };
+    const updateData: Record<string, unknown> = {};
+
+    if (dto.address !== undefined) updateData.address = dto.address;
+    if (dto.entrance !== undefined)
+      updateData.entrance = dto.entrance ? Number(dto.entrance) : null;
+    if (dto.doorphone !== undefined) updateData.doorphone = dto.doorphone;
+    if (dto.flat !== undefined) updateData.flat = dto.flat;
+    if (dto.floor !== undefined) updateData.floor = dto.floor;
+    if (dto.comment !== undefined) updateData.comment = dto.comment;
 
     // Если переданы данные для геокодирования — обновляем координаты
     if (dto.city || dto.country || dto.postalcode) {
@@ -74,8 +85,6 @@ export class AddressService {
       }
     }
 
-    if (dto.entrance) updateData.entrance = Number(dto.entrance);
-
     return this.prisma.address.update({
       where: { idAddress: id },
       data: updateData,
@@ -84,6 +93,11 @@ export class AddressService {
 
   async remove(id: string, userId: string) {
     await this.getById(id, userId);
+
+    // Удаляем связь, затем адрес (каскад)
+    await this.prisma.addressUser.delete({
+      where: { userId_addressId: { userId, addressId: id } },
+    });
 
     return this.prisma.address.delete({
       where: { idAddress: id },

@@ -110,6 +110,7 @@ export default function OrganizationPage() {
 							{restaurants.map(rest => (
 								<div
 									key={rest.idRestaurant}
+									onClick={() => router.push(OWNER_PAGES.RESTAURANT_MENU(orgId, rest.idRestaurant))}
 									className="grid grid-cols-4 gap-4 py-4 cursor-pointer hover:text-primary transition-colors"
 								>
 									<span className="font-medium">{rest.name}</span>

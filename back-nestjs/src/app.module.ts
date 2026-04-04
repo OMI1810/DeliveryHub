@@ -6,6 +6,7 @@ import { GeocoodingModule } from "./geocooding/geocooding.module";
 import { OrderModule } from "./order/order.module";
 import { OrganizationModule } from "./organization/organization.module";
 import { RestaurantModule } from "./restaurant/restaurant.module";
+import { ProductModule } from "./product/product.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RestaurantModule } from "./restaurant/restaurant.module";
     OrganizationModule,
     OrderModule,
     RestaurantModule,
+    ProductModule,
   ],
 })
 export class AppModule { }

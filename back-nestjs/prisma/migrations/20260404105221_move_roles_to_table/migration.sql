@@ -5,6 +5,15 @@ CREATE TYPE "Role" AS ENUM ('GOD', 'MODERATOR', 'CLIENT', 'OWNER', 'DELIVERYMAN'
 CREATE TYPE "Status" AS ENUM ('CREATED', 'COOKING', 'FROM_DELIVERYMAN', 'DELIVERED');
 
 -- CreateTable
+CREATE TABLE "user_roles" (
+    "id_user_role" TEXT NOT NULL,
+    "role" "Role" NOT NULL,
+    "user_id" TEXT NOT NULL,
+
+    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id_user_role")
+);
+
+-- CreateTable
 CREATE TABLE "users" (
     "id_user" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -21,15 +30,6 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
-CREATE TABLE "user_roles" (
-    "id_user_role" TEXT NOT NULL,
-    "role" "Role" NOT NULL,
-    "user_id" TEXT NOT NULL,
-
-    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id_user_role")
-);
-
--- CreateTable
 CREATE TABLE "shifts" (
     "id_shift" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
@@ -43,27 +43,11 @@ CREATE TABLE "shifts" (
 CREATE TABLE "addresses" (
     "id_address" TEXT NOT NULL,
     "address" TEXT NOT NULL,
-    "entrance" INTEGER,
-    "doorphone" TEXT,
-    "flat" TEXT,
-    "floor" TEXT,
-    "comment" TEXT,
     "cordinatY" DOUBLE PRECISION NOT NULL,
     "cordinatX" DOUBLE PRECISION NOT NULL,
+    "user_id" TEXT NOT NULL,
 
     CONSTRAINT "addresses_pkey" PRIMARY KEY ("id_address")
-);
-
--- CreateTable
-CREATE TABLE "address_user" (
-    "user_id" TEXT NOT NULL,
-    "address_id" TEXT NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "address_restaurant" (
-    "restataunt_id" TEXT NOT NULL,
-    "address_id" TEXT NOT NULL
 );
 
 -- CreateTable
@@ -110,6 +94,8 @@ CREATE TABLE "restaurants" (
     "cuisine" TEXT,
     "time_opened" TIME(0) NOT NULL,
     "time_closed" TIME(0) NOT NULL,
+    "cordinatY" DOUBLE PRECISION NOT NULL,
+    "cordinatX" DOUBLE PRECISION NOT NULL,
     "organization_id" TEXT NOT NULL,
 
     CONSTRAINT "restaurants_pkey" PRIMARY KEY ("id_restaurant")
@@ -124,25 +110,13 @@ CREATE TABLE "_OrderToProduct" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "user_roles_user_id_role_key" ON "user_roles"("user_id", "role");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_phone_key" ON "users"("phone");
-
--- CreateIndex
-CREATE UNIQUE INDEX "user_roles_user_id_role_key" ON "user_roles"("user_id", "role");
-
--- CreateIndex
-CREATE UNIQUE INDEX "address_user_user_id_address_id_key" ON "address_user"("user_id", "address_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "address_restaurant_restataunt_id_key" ON "address_restaurant"("restataunt_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "address_restaurant_address_id_key" ON "address_restaurant"("address_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "address_restaurant_restataunt_id_address_id_key" ON "address_restaurant"("restataunt_id", "address_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "organizations_name_key" ON "organizations"("name");
@@ -163,16 +137,7 @@ ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_user_id_fkey" FOREIGN KEY ("
 ALTER TABLE "shifts" ADD CONSTRAINT "shifts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id_user") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "address_user" ADD CONSTRAINT "address_user_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id_user") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "address_user" ADD CONSTRAINT "address_user_address_id_fkey" FOREIGN KEY ("address_id") REFERENCES "addresses"("id_address") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "address_restaurant" ADD CONSTRAINT "address_restaurant_restataunt_id_fkey" FOREIGN KEY ("restataunt_id") REFERENCES "restaurants"("id_restaurant") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "address_restaurant" ADD CONSTRAINT "address_restaurant_address_id_fkey" FOREIGN KEY ("address_id") REFERENCES "addresses"("id_address") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id_user") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_address_id_fkey" FOREIGN KEY ("address_id") REFERENCES "addresses"("id_address") ON DELETE RESTRICT ON UPDATE CASCADE;

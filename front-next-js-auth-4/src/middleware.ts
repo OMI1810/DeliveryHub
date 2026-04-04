@@ -20,7 +20,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 		return protectAdminPages(request)
 	}
 
-	if (pathname.startsWith(DASHBOARD_PAGES.HOME)) {
+	if (
+		pathname.startsWith(DASHBOARD_PAGES.HOME) ||
+		pathname.startsWith('/owner')
+	) {
 		return protectDashboardPages(request)
 	}
 
@@ -31,6 +34,7 @@ export const config = {
 	matcher: [
 		'/dashboard/:path*',
 		'/auth/:path*',
+		'/owner/:path*',
 		'/admin/:path*',
 		'/manager/:path*'
 	]

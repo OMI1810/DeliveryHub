@@ -43,8 +43,7 @@ model User {
   shifts    Shift[]
   address   AddressUser[]
   orders    Order[]
-
-  organization Organization?
+  organizations Organization[]
 
   @@map("users")
 }
@@ -159,9 +158,10 @@ model Organization {
 
   restaurants Restaurant[]
 
-  ownerId String @unique @map("owner_id")
+  ownerId String @map("owner_id")
   owner   User   @relation(fields: [ownerId], references: [idUser])
 
+  @@index([ownerId])
   @@map("organizations")
 }
 

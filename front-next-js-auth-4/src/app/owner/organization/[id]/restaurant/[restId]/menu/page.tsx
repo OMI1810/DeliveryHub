@@ -102,8 +102,8 @@ export default function RestaurantMenuPage() {
 					</div>
 				) : (
 					<div>
-						<div className="grid grid-cols-5 gap-4 py-3 border-b border-zinc-700 text-sm text-zinc-400 uppercase tracking-wider">
-							<span className="col-span-2">Name</span>
+						<div className="grid grid-cols-4 gap-4 py-3 border-b border-zinc-700 text-sm text-zinc-400 uppercase tracking-wider">
+							<span>Name</span>
 							<span>Price</span>
 							<span>Calories</span>
 							<span>Cooking time</span>
@@ -114,14 +114,9 @@ export default function RestaurantMenuPage() {
 								<div
 									key={product.idProduct}
 									onClick={() => { setSelectedProduct(product); setIsEditing(false) }}
-									className="grid grid-cols-5 gap-4 py-4 cursor-pointer hover:text-primary transition-colors"
+									className="grid grid-cols-4 gap-4 py-4 cursor-pointer hover:text-primary transition-colors"
 								>
-									<div className="col-span-2">
-										<p className="font-medium">{product.name}</p>
-										{product.description && (
-											<p className="text-sm text-zinc-500 truncate">{product.description}</p>
-										)}
-									</div>
+									<span className="font-medium">{product.name}</span>
 									<span className="text-zinc-400">{product.price.toFixed(2)} ₽</span>
 									<span className="text-zinc-400">{product.calories ? `${product.calories} kcal` : '—'}</span>
 									<span className="text-zinc-400">{product.timeCooking ? `${product.timeCooking} min` : '—'}</span>

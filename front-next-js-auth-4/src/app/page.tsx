@@ -10,6 +10,7 @@ const pages = [
   DASHBOARD_PAGES.PROFILE,
   DASHBOARD_PAGES.ADDRESSES,
   DASHBOARD_PAGES.CART,
+  DASHBOARD_PAGES.ORDERS,
   DASHBOARD_PAGES.WORK,
   ADMIN_PAGES.HOME,
   ADMIN_PAGES.MANAGER,
@@ -39,24 +40,24 @@ export default function Home() {
       <br />
       <div className="space-y-3">
         <AddToCartButton
-          productId="test-pizza-1"
+          productId="cmnkp7voi0004u9coapkg81kb"
           productName="Маргарита"
           productPrice={500}
-          restaurantId="rest-pizza"
+          restaurantId="cmnkp7voh0003u9coovseeccj"
           restaurantName="Пиццерия"
         />
         <AddToCartButton
-          productId="test-pizza-2"
+          productId="cmnkp7voi0005u9co8l6hurdy"
           productName="Пепперони"
           productPrice={600}
-          restaurantId="rest-pizza"
+          restaurantId="cmnkp7voh0003u9coovseeccj"
           restaurantName="Пиццерия"
         />
         <AddToCartButton
-          productId="test-sushi-1"
+          productId="cmnkp7vor0009u9cocnu5oz2e"
           productName="Филадельфия"
           productPrice={800}
-          restaurantId="rest-sushi"
+          restaurantId="cmnkp7voq0008u9coe67hraes"
           restaurantName="Суши-бар"
         />
       </div>

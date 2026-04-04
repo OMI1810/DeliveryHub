@@ -1,5 +1,9 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
-import { GeocoodingService, GeoResult } from "./geocooding.service";
+import {
+  GeocoodingService,
+  GeoResult,
+  AddressSuggestion,
+} from "./geocooding.service";
 
 @Controller("geocooding")
 export class GeocoodingController {
@@ -9,14 +13,32 @@ export class GeocoodingController {
   async GetCoord(
     @Query()
     dto: {
-      street: string;
-      city: string;
-      country: string;
-      postalcode?: string;
+      address: string;
     },
   ): Promise<GeoResult> {
-    const query: string = `${dto.country}, ${dto.city}, ${dto.street}`;
+    return this.geocoodingService.geocodeOSM(dto.address);
+  }
 
-    return this.geocoodingService.geocodeOSM(query);
+  @Get("suggest")
+  async getSuggestions(
+    @Query("q") query: string,
+  ): Promise<AddressSuggestion[]> {
+    if (!query || query.length < 3) return [];
+    return this.geocoodingService.suggest(query);
+  }
+
+  @Get("find")
+  async findByMagicKey(
+    @Query("magicKey") magicKey: string,
+  ): Promise<GeoResult> {
+    return this.geocoodingService.findByMagicKey(magicKey);
+  }
+
+  @Get("reverse")
+  async reverseGeocode(
+    @Query("lat") lat: number,
+    @Query("lon") lon: number,
+  ): Promise<GeoResult> {
+    return this.geocoodingService.reverseGeocode(lat, lon);
   }
 }

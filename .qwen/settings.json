@@ -8,7 +8,9 @@
       "Bash(git commit *)",
       "Bash(git fetch *)",
       "Bash(git merge *)",
-      "Bash(findstr *)"
+      "Bash(findstr *)",
+      "Bash(type *)",
+      "Bash(del *)"
     ]
   },
   "$version": 3

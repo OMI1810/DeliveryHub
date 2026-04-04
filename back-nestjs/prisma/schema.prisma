@@ -39,7 +39,7 @@ model User {
   otpCode      String?   @map("otp_code")
   otpExpiresAt DateTime? @map("otp_expires_at")
 
-  role      Role
+  role      UserRole[]
   shifts    Shift[]
   addresses Address[]
   orders    Order[]
@@ -48,6 +48,17 @@ model User {
 
   @@map("users")
 }
+
+model UserRole {
+   idUserRole String   @id @default(cuid()) @map("id_user_role")
+   role       Role
+
+   userId     String @map("user_id")
+   user       User   @relation(fields: [userId], references: [idUser], onDelete: Cascade)
+
+   @@unique([userId, role])
+   @@map("user_roles")
+ }
 
 model Shift {
   idShift String @id @default(cuid()) @map("id_shift")
@@ -65,12 +76,19 @@ model Address {
   idAddress String @id @default(cuid()) @map("id_address")
 
   address   String
+  entrance Int?
+  doorphone String?
+  flat String?
+  floor String?
+  comment String?
+
   cordinatY Float
   cordinatX Float
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [idUser])
   orders Order[]
+  restaurant Restaurant?
 
   @@map("addresses")
 }
@@ -136,8 +154,8 @@ model Restaurant {
   timeOpened DateTime @db.Time(0) @map("time_opened")
   timeClosed DateTime @db.Time(0) @map("time_closed")
 
-  cordinatY Float
-  cordinatX Float
+  addressId String @unique @map("address_id")
+  address Address @relation(fields: [addressId], references: [idAddress])
 
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [idOrganization])

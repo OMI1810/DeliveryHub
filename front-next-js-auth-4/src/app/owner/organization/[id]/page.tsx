@@ -48,6 +48,12 @@ export default function OrganizationPage() {
 
 	const restaurants = restData?.data || []
 
+	const formatTime = (iso: string) => {
+		if (!iso) return '—'
+		const d = new Date(iso)
+		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+	}
+
 	return (
 		<div className="p-8 max-w-4xl mx-auto">
 			<Link
@@ -109,7 +115,7 @@ export default function OrganizationPage() {
 									<span className="font-medium">{rest.name}</span>
 									<span className="text-zinc-400">{rest.cuisine || '—'}</span>
 									<span className="text-zinc-400">
-										{rest.timeOpened.slice(0, 5)} – {rest.timeClosed.slice(0, 5)}
+										{formatTime(rest.timeOpened)} – {formatTime(rest.timeClosed)}
 									</span>
 									<span className="text-zinc-400">—</span>
 								</div>
@@ -118,6 +124,6 @@ export default function OrganizationPage() {
 					</div>
 				)}
 			</div>
-		</div >
+		</div>
 	)
 }

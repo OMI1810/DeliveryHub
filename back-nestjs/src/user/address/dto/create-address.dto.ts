@@ -25,16 +25,25 @@ export class CreateAddressDto {
 	@IsString()
 	comment?: string
 
-	// Поля для геокодирования
-	@IsString()
-	@IsNotEmpty()
-	city: string
+	// Прямые координаты (с карты)
+	@IsOptional()
+	@IsNumber()
+	lat?: number
 
-	@IsString()
-	@IsNotEmpty()
-	country: string
+	@IsOptional()
+	@IsNumber()
+	lon?: number
 
+	// Поля для геокодирования (если нет прямых координат)
+	@IsOptional()
 	@IsString()
-	@IsNotEmpty()
-	postalcode: string
+	city?: string
+
+	@IsOptional()
+	@IsString()
+	country?: string
+
+	@IsOptional()
+	@IsString()
+	postalcode?: string
 }

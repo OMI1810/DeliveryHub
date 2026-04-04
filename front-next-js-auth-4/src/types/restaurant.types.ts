@@ -6,6 +6,17 @@ export interface IRestaurant {
 	timeOpened: string
 	timeClosed: string
 	organizationId: string
+	address?: {
+		addressId: string
+		address: {
+			idAddress: string
+			address: string
+			floor?: string
+			comment?: string
+			cordinatY: number
+			cordinatX: number
+		}
+	}
 }
 
 export interface IRestaurantCreate {
@@ -14,4 +25,9 @@ export interface IRestaurantCreate {
 	cuisine?: string
 	timeOpened: string
 	timeClosed: string
+	address: string
+	floor?: string
+	comment?: string
+	lat?: number
+	lon?: number
 }

@@ -10,7 +10,7 @@ import { CreateRestaurantDto } from './dto/create-restaurant.dto'
 
 @Injectable()
 export class RestaurantService {
-	constructor(private prisma: PrismaService) {}
+	constructor(private prisma: PrismaService) { }
 
 	async getByOrganization(orgId: string, userId: string) {
 		await this.verifyOrganizationAccess(orgId, userId)
@@ -23,7 +23,8 @@ export class RestaurantService {
 						address: true
 					}
 				}
-			}
+			},
+			orderBy: { name: 'asc' }
 		})
 	}
 
@@ -51,34 +52,78 @@ export class RestaurantService {
 	async create(orgId: string, userId: string, dto: CreateRestaurantDto) {
 		await this.verifyOrganizationAccess(orgId, userId)
 
-		// Parse time strings to DateTime (Prisma @db.Time(0) expects DateTime)
-		const [hoursOpened, minutesOpened] = dto.timeOpened.split(':').map(Number)
-		const [hoursClosed, minutesClosed] = dto.timeClosed.split(':').map(Number)
-
-		if (
-			isNaN(hoursOpened) || isNaN(minutesOpened) ||
-			isNaN(hoursClosed) || isNaN(minutesClosed)
-		) {
-			throw new BadRequestException('Invalid time format. Use HH:MM')
+		// Validate time format
+		const timeValidation = this.validateTime(dto.timeOpened, dto.timeClosed)
+		if (!timeValidation.valid) {
+			throw new BadRequestException(timeValidation.error)
 		}
 
-		// Create base DateTime values (date part is irrelevant for @db.Time)
+		// Resolve coordinates
+		const lat = dto.lat ?? 0
+		const lon = dto.lon ?? 0
+
+		// Create restaurant with address in a transaction
+		return this.prisma.$transaction(async (tx) => {
+			// Create Address
+			const address = await tx.address.create({
+				data: {
+					address: dto.address,
+					floor: dto.floor || null,
+					comment: dto.comment || null,
+					cordinatY: lat,
+					cordinatX: lon
+				}
+			})
+
+			// Create Restaurant
+			const restaurant = await tx.restaurant.create({
+				data: {
+					name: dto.name,
+					description: dto.description || null,
+					cuisine: dto.cuisine || null,
+					timeOpened: timeValidation.timeOpened,
+					timeClosed: timeValidation.timeClosed,
+					organizationId: orgId,
+					address: {
+						create: {
+							addressId: address.idAddress
+						}
+					}
+				},
+				include: {
+					address: {
+						include: {
+							address: true
+						}
+					}
+				}
+			})
+
+			return restaurant
+		})
+	}
+
+	private validateTime(opened: string, closed: string) {
+		const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
+
+		if (!timeRegex.test(opened)) {
+			return { valid: false, error: 'Invalid opening time format. Use HH:MM (00:00 — 23:59)' }
+		}
+		if (!timeRegex.test(closed)) {
+			return { valid: false, error: 'Invalid closing time format. Use HH:MM (00:00 — 23:59)' }
+		}
+
+		const [openH, openM] = opened.split(':').map(Number)
+		const [closeH, closeM] = closed.split(':').map(Number)
+
+		// Create DateTime objects (using today's date)
 		const timeOpened = new Date()
-		timeOpened.setHours(hoursOpened, minutesOpened, 0, 0)
+		timeOpened.setHours(openH, openM, 0, 0)
 
 		const timeClosed = new Date()
-		timeClosed.setHours(hoursClosed, minutesClosed, 0, 0)
+		timeClosed.setHours(closeH, closeM, 0, 0)
 
-		return this.prisma.restaurant.create({
-			data: {
-				name: dto.name,
-				description: dto.description,
-				cuisine: dto.cuisine,
-				timeOpened,
-				timeClosed,
-				organizationId: orgId
-			}
-		})
+		return { valid: true, timeOpened, timeClosed }
 	}
 
 	private async verifyOrganizationAccess(orgId: string, userId: string) {

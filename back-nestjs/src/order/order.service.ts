@@ -8,7 +8,7 @@ import { CreateOrderDto } from "./dto/create-order.dto";
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /** Создать заказ */
   async create(userId: string, dto: CreateOrderDto) {
@@ -66,11 +66,14 @@ export class OrderService {
 
       // Добавляем продукты в заказ
       for (const item of dto.items) {
+        const product = products.find((p) => p.idProduct === item.productId)
+
         await tx.orderProduct.create({
           data: {
             orderId: createdOrder.idOrder,
             productId: item.productId,
             quantity: item.quantity,
+            price: product.price,
           },
         });
       }

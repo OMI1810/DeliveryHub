@@ -141,6 +141,7 @@ model Product {
   idProduct String @id @default(cuid()) @map("id_product")
 
   name        String
+  price       Float
   timeCooking Int?    @map("time_cooking")
   calories    Float?
   description String?
@@ -157,6 +158,7 @@ model OrderProduct {
   idOrderProduct String @id @default(cuid()) @map("id_order_product")
 
   quantity Int @default(1)
+  price    Float
 
   orderId   String  @map("order_id")
   productId String  @map("product_id")

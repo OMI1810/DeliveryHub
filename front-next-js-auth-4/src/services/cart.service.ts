@@ -115,6 +115,11 @@ class CartService {
     if (!cart) return 0
     return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   }
+
+  /** Форматирование цены */
+  formatPrice(price: number): string {
+    return price.toFixed(2)
+  }
 }
 
 export default new CartService()

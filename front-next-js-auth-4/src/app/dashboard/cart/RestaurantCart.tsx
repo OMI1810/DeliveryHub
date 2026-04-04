@@ -38,7 +38,7 @@ export function RestaurantCart({ restaurantId }: Props) {
           >
             <div className="flex-1">
               <p className="font-medium">{item.name}</p>
-              <p className="text-sm text-gray-500">{item.price} ₽</p>
+              <p className="text-sm text-gray-500">{item.price.toFixed(2)} ₽</p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -73,7 +73,7 @@ export function RestaurantCart({ restaurantId }: Props) {
               </div>
 
               <p className="font-medium min-w-[80px] text-right">
-                {item.price * item.quantity} ₽
+                {(item.price * item.quantity).toFixed(2)} ₽
               </p>
 
               <button

@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  GOD
+  MODERATOR
+  CLIENT
+  OWNER
+  DELIVERYMAN
+}
+
+enum Status {
+  CREATED
+  COOKING
+  FROM_DELIVERYMAN
+  DELIVERED
+}
+
+model User {
+  idUser   String  @id @default(cuid()) @map("id_user")
+  email    String  @unique
+  phone    String? @unique
+  password String
+
+  surname    String?
+  name       String?
+  patronymic String?
+
+  // Email verification
+  verificationToken String? @default(cuid()) @map("verification_token")
+
+  // SMS OTP verification
+  otpCode      String?   @map("otp_code")
+  otpExpiresAt DateTime? @map("otp_expires_at")
+
+  role      Role
+  shifts    Shift[]
+  addresses Address[]
+  orders    Order[]
+
+  organization Organization?
+
+  @@map("users")
+}
+
+model Shift {
+  idShift String @id @default(cuid()) @map("id_shift")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [idUser])
+
+  createAt DateTime  @default(now()) @map("created_at")
+  stopAt   DateTime? @map("stop_at")
+
+  @@map("shifts")
+}
+
+model Address {
+  idAddress String @id @default(cuid()) @map("id_address")
+
+  address   String
+  cordinatY Float
+  cordinatX Float
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [idUser])
+  orders Order[]
+
+  @@map("addresses")
+}
+
+model Order {
+  idOrder String @id @default(cuid()) @map("id_order")
+
+  payStatus Boolean @default(false) @map("pay_status")
+  status    Status
+
+  createAt DateTime @default(now()) @map("created_at")
+
+  clientId     String @map("client_id")
+  restarauntId String @map("restaraunt_id")
+  addressId    String @map("address_id")
+
+  address    Address    @relation(fields: [addressId], references: [idAddress])
+  client     User       @relation(fields: [clientId], references: [idUser])
+  restaraunt Restaurant @relation(fields: [restarauntId], references: [idRestaurant])
+  products   Product[]
+
+  @@map("orders")
+}
+
+model Product {
+  idProduct String @id @default(cuid()) @map("id_product")
+
+  name        String
+  timeCooking Int?    @map("time_cooking")
+  calories    Float?
+  description String?
+
+  orders Order[]
+
+  restaurantId String     @map("restaurant_id")
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [idRestaurant])
+
+  @@map("products")
+}
+
+model Organization {
+  idOrganization String @id @default(cuid()) @map("id_organization")
+
+  name  String  @unique
+  email String  @unique
+  phone String?
+
+  restaurants Restaurant[]
+
+  ownerId String @unique @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [idUser])
+
+  @@map("organizations")
+}
+
+model Restaurant {
+  idRestaurant String @id @default(cuid()) @map("id_restaurant")
+
+  name        String
+  description String?
+  cuisine     String?
+
+  timeOpened DateTime @db.Time(0) @map("time_opened")
+  timeClosed DateTime @db.Time(0) @map("time_closed")
+
+  cordinatY Float
+  cordinatX Float
+
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [idOrganization])
+
+  products Product[]
+  orders   Order[]
+
+  @@map("restaurants")
+}

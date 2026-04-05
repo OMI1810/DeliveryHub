@@ -31,3 +31,10 @@ export interface IRestaurantCreate {
 	lat?: number
 	lon?: number
 }
+
+export interface IRestaurantUpdate {
+	name?: string
+	cuisine?: string
+	timeOpened?: string
+	timeClosed?: string
+}

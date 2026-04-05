@@ -7,6 +7,7 @@ import {
 import { Role } from '@prisma/client'
 import { PrismaService } from 'src/prisma.service'
 import { CreateRestaurantDto } from './dto/create-restaurant.dto'
+import { UpdateRestaurantDto } from './dto/update-restaurant.dto'
 
 @Injectable()
 export class RestaurantService {
@@ -147,5 +148,22 @@ export class RestaurantService {
 		) {
 			throw new ForbiddenException('You do not have access to this organization')
 		}
+	}
+
+	async update(orgId: string, restId: string, userId: string, dto: UpdateRestaurantDto) {
+		await this.verifyOrganizationAccess(orgId, userId)
+
+		return this.prisma.restaurant.update({
+			where: { idRestaurant: restId },
+			data: dto
+		})
+	}
+
+	async remove(orgId: string, restId: string, userId: string) {
+		await this.verifyOrganizationAccess(orgId, userId)
+
+		return this.prisma.restaurant.delete({
+			where: { idRestaurant: restId }
+		})
 	}
 }

@@ -1,11 +1,13 @@
 import {
 	BadRequestException,
 	ForbiddenException,
-	Injectable
+	Injectable,
+	NotFoundException
 } from '@nestjs/common'
 import { Role } from '@prisma/client'
 import { PrismaService } from 'src/prisma.service'
 import { CreateOrganizationDto } from './dto/create-organization.dto'
+import { UpdateOrganizationDto } from './dto/update-organization.dto'
 
 @Injectable()
 export class OrganizationService {
@@ -85,5 +87,31 @@ export class OrganizationService {
 		}
 
 		return organization
+	}
+
+	async update(userId: string, idOrganization: string, dto: UpdateOrganizationDto) {
+		const existing = await this.getById(idOrganization, userId)
+
+		if (dto.name && dto.name !== existing.name) {
+			const byName = await this.prisma.organization.findUnique({ where: { name: dto.name } })
+			if (byName) throw new BadRequestException('Organization name already exists')
+		}
+		if (dto.email && dto.email !== existing.email) {
+			const byEmail = await this.prisma.organization.findUnique({ where: { email: dto.email } })
+			if (byEmail) throw new BadRequestException('Organization email already exists')
+		}
+
+		return this.prisma.organization.update({
+			where: { idOrganization },
+			data: dto
+		})
+	}
+
+	async remove(userId: string, idOrganization: string) {
+		await this.getById(idOrganization, userId)
+
+		return this.prisma.organization.delete({
+			where: { idOrganization }
+		})
 	}
 }

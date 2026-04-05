@@ -6,6 +6,7 @@ import { OWNER_PAGES } from '@/config/pages/owner.config'
 import productService from '@/services/product.service'
 import restaurantService from '@/services/restaurant.service'
 import { IProduct, IProductUpdate } from '@/types/product.types'
+import { IRestaurantUpdate } from '@/types/restaurant.types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -22,6 +23,17 @@ export default function RestaurantMenuPage() {
 
 	const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null)
 	const [isEditing, setIsEditing] = useState(false)
+	const [isEditingRest, setIsEditingRest] = useState(false)
+	const [confirmDeleteRest, setConfirmDeleteRest] = useState(false)
+
+	const deleteRestaurant = useMutation({
+		mutationFn: () => restaurantService.remove(orgIdStr, restIdStr),
+		onSuccess: () => {
+			toast.success('Restaurant deleted')
+			router.push(OWNER_PAGES.ORGANIZATION(orgIdStr))
+		},
+		onError: () => toast.error('Failed to delete restaurant')
+	})
 
 	const { data: restData, isLoading: restLoading, isError: restError } = useQuery({
 		queryKey: ['restaurant', restIdStr],
@@ -68,6 +80,38 @@ export default function RestaurantMenuPage() {
 				<div className="flex justify-between items-start mb-6">
 					<div>
 						<h1 className="text-3xl font-bold">{restaurant.name}</h1>
+						<div className="flex gap-3 mt-2">
+							<button
+								onClick={() => setIsEditingRest(true)}
+								className="text-sm text-zinc-400 hover:text-primary transition"
+							>
+								✏ Edit
+							</button>
+							{confirmDeleteRest ? (
+								<div className="flex gap-2">
+									<button
+										onClick={() => deleteRestaurant.mutate()}
+										disabled={deleteRestaurant.isPending}
+										className="text-sm text-red-500 hover:underline disabled:opacity-50"
+									>
+										Confirm
+									</button>
+									<button
+										onClick={() => setConfirmDeleteRest(false)}
+										className="text-sm text-zinc-500 hover:underline"
+									>
+										Cancel
+									</button>
+								</div>
+							) : (
+								<button
+									onClick={() => setConfirmDeleteRest(true)}
+									className="text-sm text-red-500 hover:underline"
+								>
+									🗑 Delete
+								</button>
+							)}
+						</div>
 						<p className="text-zinc-400 mt-1">{restaurant.cuisine || 'No cuisine specified'}</p>
 					</div>
 					<Link
@@ -154,6 +198,20 @@ export default function RestaurantMenuPage() {
 							restId={restIdStr}
 						/>
 				)}
+			</Modal>
+
+			{/* Restaurant Edit Modal */}
+			<Modal isOpen={isEditingRest} onClose={() => setIsEditingRest(false)}>
+				<RestEditForm
+					rest={restaurant}
+					orgId={orgIdStr}
+					restId={restIdStr}
+					onCancel={() => setIsEditingRest(false)}
+					onSuccess={() => {
+						setIsEditingRest(false)
+						queryClient.invalidateQueries({ queryKey: ['restaurant', restIdStr] })
+					}}
+				/>
 			</Modal>
 		</div>
 	)
@@ -358,6 +416,85 @@ function ProductEditForm({ product, orgId, restId, onCancel, onSuccess }: {
 						type="button"
 						onClick={onCancel}
 						className="bg-zinc-700 text-white px-4 py-2 rounded-md hover:bg-zinc-600 transition text-sm"
+					>
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	)
+}
+
+/* ── Restaurant Edit Form ── */
+function RestEditForm({ rest, orgId, restId, onCancel, onSuccess }: {
+	rest: any
+	orgId: string
+	restId: string
+	onCancel: () => void
+	onSuccess: () => void
+}) {
+	const { register, handleSubmit, formState: { errors } } = useForm<IRestaurantUpdate>({
+		defaultValues: {
+			name: rest.name,
+			cuisine: rest.cuisine || '',
+			timeOpened: new Date(rest.timeOpened).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+			timeClosed: new Date(rest.timeClosed).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+		}
+	})
+
+	const { mutate, isPending } = useMutation({
+		mutationFn: (data: IRestaurantUpdate) => restaurantService.update(orgId, restId, data),
+		onSuccess: () => { toast.success('Restaurant updated'); onSuccess() },
+		onError: (err: any) => toast.error(err.response?.data?.message?.[0] || 'Failed to update')
+	})
+
+	return (
+		<div>
+			<h2 className="text-lg font-bold mb-4">Edit Restaurant</h2>
+			<form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-3">
+				<div>
+					<label className="block text-xs text-zinc-400 mb-1">Name *</label>
+					<input
+						{...register('name', { required: 'Required', minLength: { value: 2, message: 'Min 2 chars' } })}
+						className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+					/>
+					{errors.name && <span className="text-red-500 text-xs">{errors.name.message}</span>}
+				</div>
+				<div>
+					<label className="block text-xs text-zinc-400 mb-1">Cuisine</label>
+					<input
+						{...register('cuisine')}
+						className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+					/>
+				</div>
+				<div className="grid grid-cols-2 gap-3">
+					<div>
+						<label className="block text-xs text-zinc-400 mb-1">Open (HH:MM)</label>
+						<input
+							{...register('timeOpened', { required: 'Required' })}
+							className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+						/>
+					</div>
+					<div>
+						<label className="block text-xs text-zinc-400 mb-1">Close (HH:MM)</label>
+						<input
+							{...register('timeClosed', { required: 'Required' })}
+							className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+						/>
+					</div>
+				</div>
+				<div className="flex gap-3 pt-2">
+					<button
+						type="submit"
+						disabled={isPending}
+						className="flex-1 bg-primary text-white py-2 rounded-md text-sm disabled:opacity-50"
+					>
+						{isPending ? <MiniLoader width={16} height={16} /> : 'Save'}
+					</button>
+					<button
+						type="button"
+						onClick={onCancel}
+						className="bg-zinc-700 text-white px-4 py-2 rounded-md text-sm"
 					>
 						Cancel
 					</button>

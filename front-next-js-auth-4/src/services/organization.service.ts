@@ -2,7 +2,8 @@ import { instance } from '@/api/axios'
 import {
 	IOrganization,
 	IOrganizationCreate,
-	IOrganizationResponse
+	IOrganizationResponse,
+	IOrganizationUpdate
 } from '@/types/organization.types'
 
 class OrganizationService {
@@ -19,6 +20,14 @@ class OrganizationService {
 
 	async fetchById(id: string) {
 		return instance.get<IOrganization>(`${this._BASE_URL}/${id}`)
+	}
+
+	async update(id: string, data: IOrganizationUpdate) {
+		return instance.patch<IOrganization>(`${this._BASE_URL}/${id}`, data)
+	}
+
+	async remove(id: string) {
+		return instance.delete(`${this._BASE_URL}/${id}`)
 	}
 }
 

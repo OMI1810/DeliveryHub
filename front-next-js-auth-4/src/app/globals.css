@@ -1,32 +1,84 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @theme {
-	--color-primary: var(--color-emerald-600);
-	--color-secondary: var(--color-rose-500);
+    --color-primary: var(--color-emerald-600);
+    --color-secondary: var(--color-rose-500);
 
-	--default-transition-duration: 400ms;
-	--default-transition-timing-function: ease-in-out;
+    --default-transition-duration: 300ms;
+    --default-transition-timing-function: ease-in-out;
 }
 
 html {
-	@apply bg-zinc-950 text-white;
+    @apply bg-zinc-950 text-white;
 }
 
 body {
-	@apply px-8;
-	font-size: 20px;
-	margin: 0 auto;
+    @apply text-zinc-100;
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
+/* Mobile-first base */
 input,
-button {
-	font-size: 20px;
+button,
+select,
+textarea {
+    font-size: 14px;
 }
 
 h1 {
-	@apply text-4xl;
+    @apply text-2xl font-bold;
 }
 
 h2 {
-	@apply text-2xl;
+    @apply text-xl font-bold;
+}
+
+h3 {
+    @apply text-lg font-semibold;
+}
+
+/* Desktop adjustments */
+@media (min-width: 768px) {
+    body {
+        font-size: 16px;
+    }
+
+    input,
+    button,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+
+    h1 {
+        @apply text-3xl;
+    }
+
+    h2 {
+        @apply text-2xl;
+    }
+}
+
+/* Safe area for mobile (notch, home indicator) */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+    }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-zinc-900;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-zinc-700 rounded-full;
 }

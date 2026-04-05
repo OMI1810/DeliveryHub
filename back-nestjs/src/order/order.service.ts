@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { Role, Status } from "@prisma/client";
 import { PrismaService } from "@/prisma.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 
@@ -137,5 +139,81 @@ export class OrderService {
     }
 
     return order;
+  }
+
+  /** Заказы ресторана для кассира */
+  async getCashierOrders(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { idUser: userId },
+      include: {
+        cashierRestaurant: true,
+        role: true
+      }
+    })
+
+    if (!user?.cashierRestaurant) {
+      throw new ForbiddenException("Not a cashier or no restaurant assigned")
+    }
+
+    const isCashier = user.role.some(r => r.role === Role.CASHIER)
+    if (!isCashier) {
+      throw new ForbiddenException("Not a cashier")
+    }
+
+    return this.prisma.order.findMany({
+      where: { restarauntId: user.cashierRestaurantId },
+      include: {
+        products: {
+          include: {
+            product: true,
+          },
+        },
+        address: true,
+        restaraunt: true,
+        client: {
+          select: {
+            idUser: true,
+            name: true,
+            surname: true,
+            phone: true
+          }
+        }
+      },
+      orderBy: { createAt: "desc" },
+    });
+  }
+
+  /** Сменить статус заказа (кассир) */
+  async updateOrderStatus(userId: string, orderId: string, status: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { idUser: userId },
+      include: { cashierRestaurant: true, role: true }
+    })
+
+    if (!user?.cashierRestaurant) {
+      throw new ForbiddenException("Not a cashier")
+    }
+
+    const order = await this.prisma.order.findUnique({
+      where: { idOrder: orderId }
+    })
+
+    if (!order) {
+      throw new NotFoundException("Order not found")
+    }
+
+    if (order.restarauntId !== user.cashierRestaurantId) {
+      throw new ForbiddenException("Order does not belong to your restaurant")
+    }
+
+    return this.prisma.order.update({
+      where: { idOrder: orderId },
+      data: { status: status as Status },
+      include: {
+        products: { include: { product: true } },
+        address: true,
+        restaraunt: true
+      }
+    })
   }
 }

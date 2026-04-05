@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   UsePipes,
   ValidationPipe,
@@ -15,7 +16,7 @@ import { CreateOrderDto } from "./dto/create-order.dto";
 
 @Controller("orders")
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(private readonly orderService: OrderService) { }
 
   @Get("test")
   test() {
@@ -46,5 +47,24 @@ export class OrderController {
     @Body() dto: CreateOrderDto,
   ) {
     return this.orderService.create(userId, dto);
+  }
+
+  /** Заказы для кассира */
+  @Auth()
+  @Get("cashier")
+  async getCashierOrders(@CurrentUser("idUser") userId: string) {
+    return this.orderService.getCashierOrders(userId);
+  }
+
+  /** Сменить статус заказа (кассир) */
+  @Auth()
+  @UsePipes(new ValidationPipe())
+  @Patch(":id/status")
+  async updateOrderStatus(
+    @CurrentUser("idUser") userId: string,
+    @Param("id") id: string,
+    @Body("status") status: string,
+  ) {
+    return this.orderService.updateOrderStatus(userId, id, status);
   }
 }

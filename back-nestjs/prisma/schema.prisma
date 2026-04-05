@@ -13,6 +13,7 @@ enum Role {
   CLIENT
   OWNER
   DELIVERYMAN
+  CASHIER
 }
 
 enum Status {
@@ -45,7 +46,11 @@ model User {
   orders         Order[] @relation("ClientOrders")
   deliveryOrders Order[] @relation("CourierOrders")
   organizations Organization[]
+  cashierRestaurant Restaurant? @relation("CashierRestaurant", fields: [cashierRestaurantId], references: [idRestaurant])
 
+  cashierRestaurantId String? @map("cashier_restaurant_id")
+
+  @@index([cashierRestaurantId])
   @@map("users")
 }
 
@@ -203,6 +208,7 @@ model Restaurant {
 
   products Product[]
   orders   Order[]
+  cashiers User[] @relation("CashierRestaurant")
 
   @@map("restaurants")
 }

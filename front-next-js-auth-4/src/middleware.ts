@@ -24,6 +24,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 		return protectDashboardPages(request)
 	}
 
+	if (pathname.startsWith('/cashier')) {
+		return protectDashboardPages(request)
+	}
+
 	return NextResponse.next()
 }
 
@@ -32,6 +36,7 @@ export const config = {
 		'/dashboard/:path*',
 		'/auth/:path*',
 		'/admin/:path*',
-		'/manager/:path*'
+		'/manager/:path*',
+		'/cashier/:path*'
 	]
 }

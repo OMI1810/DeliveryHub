@@ -11,7 +11,7 @@ import { CreateCashierDto } from './dto/create-cashier.dto'
 
 @Injectable()
 export class CashierService {
-	constructor(private prisma: PrismaService) {}
+	constructor(private prisma: PrismaService) { }
 
 	async getCashiers(orgId: string, restId: string, userId: string) {
 		await this.verifyAccess(orgId, restId, userId)
@@ -72,6 +72,56 @@ export class CashierService {
 
 		return this.prisma.user.delete({
 			where: { idUser: cashierId }
+		})
+	}
+
+	async assignByEmail(orgId: string, restId: string, ownerUserId: string, email: string) {
+		await this.verifyAccess(orgId, restId, ownerUserId)
+
+		const user = await this.prisma.user.findUnique({
+			where: { email },
+			include: { role: true }
+		})
+
+		if (!user) {
+			throw new NotFoundException('User not found')
+		}
+
+		if (user.verificationToken) {
+			throw new BadRequestException('User must verify their email first')
+		}
+
+		if (user.cashierRestaurantId && user.cashierRestaurantId !== restId) {
+			throw new BadRequestException('User is already a cashier at another restaurant')
+		}
+
+		// Check if already a cashier at this restaurant
+		if (user.cashierRestaurantId === restId) {
+			const isCashier = user.role.some(r => r.role === Role.CASHIER)
+			if (isCashier) {
+				throw new BadRequestException('User is already a cashier at this restaurant')
+			}
+		}
+
+		// Add CASHIER role if not present
+		const isCashier = user.role.some(r => r.role === Role.CASHIER)
+		if (!isCashier) {
+			await this.prisma.userRole.create({
+				data: { userId: user.idUser, role: Role.CASHIER }
+			})
+		}
+
+		// Link to restaurant
+		return this.prisma.user.update({
+			where: { idUser: user.idUser },
+			data: { cashierRestaurantId: restId },
+			select: {
+				idUser: true,
+				email: true,
+				name: true,
+				surname: true,
+				cashierRestaurantId: true
+			}
 		})
 	}
 

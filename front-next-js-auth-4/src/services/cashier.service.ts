@@ -1,5 +1,5 @@
 import { instance } from '@/api/axios'
-import { ICashier, ICreateCashier, ICashierOrder } from '@/types/cashier.types'
+import { ICashier, ICreateCashier, IAssignCashierResult, ICashierOrder } from '@/types/cashier.types'
 
 class CashierService {
 	private _CASHIERS = (orgId: string, restId: string) =>
@@ -11,6 +11,10 @@ class CashierService {
 
 	async create(orgId: string, restId: string, data: ICreateCashier) {
 		return instance.post<ICashier>(this._CASHIERS(orgId, restId), data)
+	}
+
+	async assignByEmail(orgId: string, restId: string, email: string) {
+		return instance.post<IAssignCashierResult>(`${this._CASHIERS(orgId, restId)}/assign`, { email })
 	}
 
 	async remove(orgId: string, restId: string, cashierId: string) {

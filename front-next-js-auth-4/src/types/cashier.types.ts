@@ -3,6 +3,15 @@ export interface ICashier {
 	email: string
 	name: string
 	surname?: string
+	cashierRestaurantId?: string
+}
+
+export interface IAssignCashierResult {
+	idUser: string
+	email: string
+	name: string
+	surname?: string
+	cashierRestaurantId: string
 }
 
 export interface ICreateCashier {

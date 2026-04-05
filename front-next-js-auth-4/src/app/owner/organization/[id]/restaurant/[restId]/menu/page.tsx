@@ -114,12 +114,20 @@ export default function RestaurantMenuPage() {
 						</div>
 						<p className="text-zinc-400 mt-1">{restaurant.cuisine || 'No cuisine specified'}</p>
 					</div>
-					<Link
-						href={OWNER_PAGES.PRODUCT_CREATE(orgIdStr, restIdStr)}
-						className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition text-sm"
-					>
-						Add dish
-					</Link>
+					<div className="flex gap-2">
+						<Link
+							href={OWNER_PAGES.RESTAURANT_STAFF(orgIdStr, restIdStr)}
+							className="bg-zinc-700 text-white px-4 py-2 rounded-md hover:bg-zinc-600 transition text-sm"
+						>
+							👥 Staff
+						</Link>
+						<Link
+							href={OWNER_PAGES.PRODUCT_CREATE(orgIdStr, restIdStr)}
+							className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition text-sm"
+						>
+							Add dish
+						</Link>
+					</div>
 				</div>
 
 				<div className="grid grid-cols-2 gap-4 text-sm">

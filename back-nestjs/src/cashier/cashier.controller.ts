@@ -11,12 +11,13 @@ import {
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
+import { AssignCashierDto } from './dto/assign-cashier.dto'
 import { CreateCashierDto } from './dto/create-cashier.dto'
 import { CashierService } from './cashier.service'
 
 @Controller('organizations/:orgId/restaurants/:restId/cashiers')
 export class CashierController {
-	constructor(private readonly cashierService: CashierService) {}
+	constructor(private readonly cashierService: CashierService) { }
 
 	@Auth()
 	@Get()
@@ -39,6 +40,19 @@ export class CashierController {
 		@Body() dto: CreateCashierDto
 	) {
 		return this.cashierService.create(orgId, restId, userId, dto)
+	}
+
+	@UsePipes(new ValidationPipe())
+	@Auth()
+	@Post('assign')
+	@HttpCode(200)
+	async assignCashierByEmail(
+		@Param('orgId') orgId: string,
+		@Param('restId') restId: string,
+		@CurrentUser('idUser') userId: string,
+		@Body() dto: AssignCashierDto
+	) {
+		return this.cashierService.assignByEmail(orgId, restId, userId, dto.email)
 	}
 
 	@HttpCode(200)

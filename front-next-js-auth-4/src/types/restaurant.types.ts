@@ -38,3 +38,25 @@ export interface IRestaurantUpdate {
 	timeOpened?: string
 	timeClosed?: string
 }
+
+export interface IPublicRestaurant {
+	idRestaurant: string
+	name: string
+	description?: string
+	cuisine?: string
+	timeOpened: string
+	timeClosed: string
+	organizationId: string
+	organization: {
+		idOrganization: string
+		name: string
+	}
+	address?: {
+		addressId: string
+		address: {
+			address: string
+			cordinatX: number
+			cordinatY: number
+		}
+	}
+}

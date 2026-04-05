@@ -72,4 +72,10 @@ export class RestaurantController {
 	) {
 		return this.restaurantService.remove(orgId, id, userId)
 	}
+
+	/** Публичный список всех ресторанов (без авторизации) */
+	@Get('public')
+	async getPublicRestaurants() {
+		return this.restaurantService.getAllPublic()
+	}
 }

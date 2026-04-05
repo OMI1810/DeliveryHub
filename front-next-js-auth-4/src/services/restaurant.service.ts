@@ -1,5 +1,5 @@
 import { instance } from '@/api/axios'
-import { IRestaurant, IRestaurantCreate, IRestaurantUpdate } from '@/types/restaurant.types'
+import { IRestaurant, IRestaurantCreate, IRestaurantUpdate, IPublicRestaurant } from '@/types/restaurant.types'
 
 class RestaurantService {
 	private _BASE = (orgId: string) => `/organizations/${orgId}/restaurants`
@@ -22,6 +22,10 @@ class RestaurantService {
 
 	async remove(orgId: string, id: string) {
 		return instance.delete(`${this._BASE(orgId)}/${id}`)
+	}
+
+	async getAllPublic() {
+		return instance.get<IPublicRestaurant[]>('/restaurants/public')
 	}
 }
 

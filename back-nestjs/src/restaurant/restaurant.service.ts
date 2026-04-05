@@ -188,4 +188,30 @@ export class RestaurantService {
 			where: { idRestaurant: restId }
 		})
 	}
+
+	async getAllPublic() {
+		return this.prisma.restaurant.findMany({
+			where: {},
+			include: {
+				organization: {
+					select: {
+						idOrganization: true,
+						name: true
+					}
+				},
+				address: {
+					include: {
+						address: {
+							select: {
+								address: true,
+								cordinatX: true,
+								cordinatY: true
+							}
+						}
+					}
+				}
+			},
+			orderBy: { name: 'asc' }
+		})
+	}
 }

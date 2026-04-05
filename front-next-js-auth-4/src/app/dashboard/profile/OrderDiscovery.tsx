@@ -150,12 +150,15 @@ export function OrderDiscovery() {
 
           {/* Карта: ресторан при COURIER_ACCEPTED, клиент при FROM_DELIVERYMAN */}
           {activeOrder.status === "COURIER_ACCEPTED" &&
-            activeOrder.restaurantCoordinates && (
+            activeOrder.restaurantCoordinates &&
+            activeOrder.restaurantCoordinates.lat !== 0 &&
+            activeOrder.restaurantCoordinates.lon !== 0 && (
               <div>
                 <p className="text-sm text-zinc-400 mb-1">
                   📍 Забрать: {activeOrder.restaurantAddress}
                 </p>
                 <CourierMap
+                  key={`restaurant-${activeOrder.idOrder}`}
                   center={[
                     activeOrder.restaurantCoordinates.lat,
                     activeOrder.restaurantCoordinates.lon,
@@ -165,6 +168,16 @@ export function OrderDiscovery() {
               </div>
             )}
 
+          {activeOrder.status === "COURIER_ACCEPTED" &&
+            (!activeOrder.restaurantCoordinates ||
+              activeOrder.restaurantCoordinates.lat === 0 ||
+              activeOrder.restaurantCoordinates.lon === 0) && (
+              <p className="text-sm text-zinc-400">
+                📍 Забрать: {activeOrder.restaurantAddress} (координаты не
+                указаны)
+              </p>
+            )}
+
           {activeOrder.status === "FROM_DELIVERYMAN" &&
             activeOrder.customerCoordinates && (
               <div>
@@ -172,6 +185,7 @@ export function OrderDiscovery() {
                   📍 Доставить: {activeOrder.customerAddress}
                 </p>
                 <CourierMap
+                  key={`customer-${activeOrder.idOrder}`}
                   center={[
                     activeOrder.customerCoordinates.lat,
                     activeOrder.customerCoordinates.lon,
@@ -181,10 +195,6 @@ export function OrderDiscovery() {
               </div>
             )}
 
-          <p>
-            <span className="font-semibold">Адрес:</span>{" "}
-            {activeOrder.customerAddress}
-          </p>
           <p>
             <span className="font-semibold">Комментарии:</span>{" "}
             {activeOrder.comments || "Нет комментариев"}

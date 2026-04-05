@@ -3,15 +3,16 @@
 import { PUBLIC_PAGES } from '@/config/pages/public.config'
 import authService from '@/services/auth/auth.service'
 import { IFormData } from '@/types/auth.types'
+import { cleanPhone, validatePhone } from '@/utils/phone'
 import { useMutation } from '@tanstack/react-query'
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
-import { SubmitHandler, useForm } from 'react-hook-form'
+import { FieldErrors, SubmitHandler, useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 
 export function useAuthForm(isLogin: boolean) {
-	const { register, handleSubmit, reset } = useForm<IFormData>()
+	const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<IFormData>()
 
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
@@ -34,7 +35,13 @@ export function useAuthForm(isLogin: boolean) {
 
 	const { mutate: mutateRegister, isPending: isRegisterPending } = useMutation({
 		mutationKey: ['register'],
-		mutationFn: (data: IFormData) => authService.main('register', data),
+		mutationFn: (data: IFormData) => {
+			const cleanedData = {
+				...data,
+				phone: data.phone ? cleanPhone(data.phone) : undefined
+			}
+			return authService.main('register', cleanedData)
+		},
 		onSuccess() {
 			startTransition(() => {
 				reset()
@@ -52,6 +59,11 @@ export function useAuthForm(isLogin: boolean) {
 		if (isLogin) {
 			mutateLogin(data)
 		} else {
+			// Validate phone if provided
+			if (data.phone && !validatePhone(data.phone)) {
+				toast.error('Invalid phone format')
+				return
+			}
 			mutateRegister(data)
 		}
 	}
@@ -62,6 +74,10 @@ export function useAuthForm(isLogin: boolean) {
 		register,
 		handleSubmit,
 		onSubmit,
-		isLoading
+		isLoading,
+		watch,
+		setValue,
+		errors: errors as FieldErrors<IFormData>,
+		cleanPhone
 	}
 }

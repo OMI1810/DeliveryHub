@@ -6,6 +6,7 @@ export interface IUser {
 	name?: string
 	patronymic?: string
 	email: string
+	phone?: string
 	avatarPath?: string
 	verificationToken?: string
 	otpCode?: string

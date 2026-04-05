@@ -7,7 +7,7 @@ import { PrismaService } from "src/prisma.service";
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private readonly ACTIVE_COURIER_ORDER_STATUS = Status.FROM_DELIVERYMAN;
 
@@ -57,6 +57,10 @@ export class UserService {
       data: {
         email: dto.email,
         password: await hash(dto.password),
+        surname: dto.surname || null,
+        name: dto.name || null,
+        patronymic: dto.patronymic || null,
+        phone: dto.phone || null,
         role: {
           create: { role: Role.CLIENT },
         },

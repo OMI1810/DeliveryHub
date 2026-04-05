@@ -29,4 +29,8 @@ export type TProtectUserData = Omit<ITokenInside, 'iat' | 'exp'>
 
 export interface IFormData extends Pick<IUser, 'email'> {
 	password: string
+	surname?: string
+	name?: string
+	patronymic?: string
+	phone?: string
 }

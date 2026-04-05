@@ -15,7 +15,9 @@
       "Bash(git remote *)",
       "Bash(git *)",
       "Bash(timeout *)",
-      "Bash(mkdir *)"
+      "Bash(mkdir *)",
+      "Bash(curl *)",
+      "Bash(taskkill *)"
     ]
   },
   "$version": 3

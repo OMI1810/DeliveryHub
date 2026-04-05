@@ -57,6 +57,13 @@ export class OrderController {
     return this.orderService.getCashierOrders(userId);
   }
 
+  /** Диагностика: информация о кассире */
+  @Auth(Role.CASHIER)
+  @Get("cashier/debug")
+  async getCashierDebug(@CurrentUser("idUser") userId: string) {
+    return this.orderService.getCashierDebug(userId);
+  }
+
   /** Сменить статус заказа (кассир) */
   @Auth(Role.CASHIER)
   @UsePipes(new ValidationPipe())

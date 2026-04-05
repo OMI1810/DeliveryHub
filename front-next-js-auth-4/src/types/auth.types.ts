@@ -13,14 +13,15 @@ export const UserRole = {
 	MODERATOR: 'MODERATOR',
 	CLIENT: 'CLIENT',
 	OWNER: 'OWNER',
-	DELIVERYMAN: 'DELIVERYMAN'
+	DELIVERYMAN: 'DELIVERYMAN',
+	CASHIER: 'CASHIER'
 } as const
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
 export interface ITokenInside {
 	idUser: string
-	role: UserRole
+	role: UserRole | UserRole[]
 	iat: number
 	exp: number
 }

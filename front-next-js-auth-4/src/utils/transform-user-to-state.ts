@@ -8,6 +8,13 @@ export type TUserDataState = {
 	isModerator: boolean
 	isOwner: boolean
 	isDeliveryman: boolean
+	isCashier: boolean
+}
+
+const hasRole = (role: UserRole | UserRole[] | undefined, target: UserRole): boolean => {
+	if (!role) return false
+	if (Array.isArray(role)) return role.includes(target)
+	return role === target
 }
 
 export const transformUserToState = (
@@ -15,10 +22,12 @@ export const transformUserToState = (
 ): TUserDataState | null => {
 	return {
 		...user,
+		role: Array.isArray(user.role) ? user.role[0] : user.role,
 		isLoggedIn: true,
-		isGod: user.role === UserRole.GOD,
-		isModerator: user.role === UserRole.MODERATOR,
-		isOwner: user.role === UserRole.OWNER,
-		isDeliveryman: user.role === UserRole.DELIVERYMAN
+		isGod: hasRole(user.role, UserRole.GOD),
+		isModerator: hasRole(user.role, UserRole.MODERATOR),
+		isOwner: hasRole(user.role, UserRole.OWNER),
+		isDeliveryman: hasRole(user.role, UserRole.DELIVERYMAN),
+		isCashier: hasRole(user.role, UserRole.CASHIER)
 	}
 }

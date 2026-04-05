@@ -1,3 +1,4 @@
+import { Role } from '@prisma/client'
 import { Auth } from "@/auth/decorators/auth.decorator";
 import { CurrentUser } from "@/auth/decorators/user.decorator";
 import {
@@ -50,14 +51,14 @@ export class OrderController {
   }
 
   /** Заказы для кассира */
-  @Auth()
+  @Auth(Role.CASHIER)
   @Get("cashier")
   async getCashierOrders(@CurrentUser("idUser") userId: string) {
     return this.orderService.getCashierOrders(userId);
   }
 
   /** Сменить статус заказа (кассир) */
-  @Auth()
+  @Auth(Role.CASHIER)
   @UsePipes(new ValidationPipe())
   @Patch(":id/status")
   async updateOrderStatus(

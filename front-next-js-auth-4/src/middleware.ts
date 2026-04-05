@@ -3,6 +3,7 @@ import { ADMIN_PAGES } from './config/pages/admin.config'
 import { DASHBOARD_PAGES } from './config/pages/dashboard.config'
 import { PUBLIC_PAGES } from './config/pages/public.config'
 import { protectAdminPages } from './server-actions/middlewares/protect-admin.middleware'
+import { protectCashierPages } from './server-actions/middlewares/protect-cashier.middleware'
 import { protectDashboardPages } from './server-actions/middlewares/protect-dashboard.middleware'
 import { protectLoginPages } from './server-actions/middlewares/protect-login.middleware'
 
@@ -25,7 +26,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 	}
 
 	if (pathname.startsWith('/cashier')) {
-		return protectDashboardPages(request)
+		return protectCashierPages(request)
 	}
 
 	return NextResponse.next()

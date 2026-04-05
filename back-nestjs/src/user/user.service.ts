@@ -9,7 +9,10 @@ import { PrismaService } from "src/prisma.service";
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  private readonly ACTIVE_COURIER_ORDER_STATUS = Status.COURIER_ACCEPTED;
+  private readonly ACTIVE_COURIER_ORDER_STATUSES = [
+    Status.COURIER_ACCEPTED,
+    Status.FROM_DELIVERYMAN,
+  ];
 
   private mapShiftResponse(shift: Shift) {
     return {
@@ -151,7 +154,7 @@ export class UserService {
       const activeOrdersCount = await tx.order.count({
         where: {
           deliverymanId: userId,
-          status: this.ACTIVE_COURIER_ORDER_STATUS,
+          status: { in: this.ACTIVE_COURIER_ORDER_STATUSES },
         } as any,
       });
 
@@ -208,7 +211,7 @@ export class UserService {
     const activeOrder = await dbClient.order.findFirst({
       where: {
         deliverymanId: userId,
-        status: this.ACTIVE_COURIER_ORDER_STATUS,
+        status: { in: this.ACTIVE_COURIER_ORDER_STATUSES },
       },
       include: {
         address: {
@@ -298,7 +301,7 @@ export class UserService {
         const activeCourierOrder = await tx.order.findFirst({
           where: {
             deliverymanId: userId,
-            status: this.ACTIVE_COURIER_ORDER_STATUS,
+            status: { in: this.ACTIVE_COURIER_ORDER_STATUSES },
           },
           select: {
             idOrder: true,
@@ -320,7 +323,7 @@ export class UserService {
             deliverymanId: null,
           },
           data: {
-            status: this.ACTIVE_COURIER_ORDER_STATUS,
+            status: Status.COURIER_ACCEPTED,
             deliverymanId: userId,
           },
         } as any);
@@ -342,7 +345,7 @@ export class UserService {
           }
 
           if (
-            staleOrder.status === this.ACTIVE_COURIER_ORDER_STATUS &&
+            this.ACTIVE_COURIER_ORDER_STATUSES.includes(staleOrder.status) &&
             staleOrder.deliverymanId === userId
           ) {
             return this.getCourierActiveOrderByUser(tx, userId);
@@ -395,7 +398,7 @@ export class UserService {
         };
       }
 
-      if (order.status !== this.ACTIVE_COURIER_ORDER_STATUS) {
+      if (!this.ACTIVE_COURIER_ORDER_STATUSES.includes(order.status)) {
         throw new BadRequestException("Order is not in delivery");
       }
 

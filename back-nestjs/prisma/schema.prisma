@@ -7,6 +7,163 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  idUser              String         @id @default(cuid()) @map("id_user")
+  email               String         @unique
+  phone               String?        @unique
+  password            String
+  surname             String?
+  name                String?
+  patronymic          String?
+  verificationToken   String?        @default(cuid()) @map("verification_token")
+  otpCode             String?        @map("otp_code")
+  otpExpiresAt        DateTime?      @map("otp_expires_at")
+  cashierRestaurantId String?        @map("cashier_restaurant_id")
+  address             AddressUser[]
+  orders              Order[]        @relation("ClientOrders")
+  deliveryOrders      Order[]        @relation("CourierOrders")
+  organizations       Organization[]
+  shifts              Shift[]
+  role                UserRole[]
+  cashierRestaurant   Restaurant?    @relation("CashierRestaurant", fields: [cashierRestaurantId], references: [idRestaurant])
+
+  @@index([cashierRestaurantId])
+  @@map("users")
+}
+
+model UserRole {
+  idUserRole String @id @default(cuid()) @map("id_user_role")
+  role       Role
+  userId     String @map("user_id")
+  user       User   @relation(fields: [userId], references: [idUser], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model Shift {
+  idShift  String    @id @default(cuid()) @map("id_shift")
+  userId   String    @map("user_id")
+  createAt DateTime  @default(now()) @map("created_at")
+  stopAt   DateTime? @map("stop_at")
+  user     User      @relation(fields: [userId], references: [idUser])
+
+  @@map("shifts")
+}
+
+model Address {
+  idAddress         String             @id @default(cuid()) @map("id_address")
+  address           String
+  cordinatY         Float
+  cordinatX         Float
+  comment           String?
+  doorphone         String?
+  entrance          Int?
+  flat              String?
+  floor             String?
+  addressRestaraunt AddressRestaraunt?
+  addressUser       AddressUser[]
+  orders            Order[]
+
+  @@map("addresses")
+}
+
+model AddressUser {
+  userId    String  @map("user_id")
+  addressId String  @map("address_id")
+  address   Address @relation(fields: [addressId], references: [idAddress], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [idUser], onDelete: Cascade)
+
+  @@unique([userId, addressId])
+  @@map("address_user")
+}
+
+model AddressRestaraunt {
+  restaurantId String     @unique @map("restataunt_id")
+  addressId    String     @unique @map("address_id")
+  address      Address    @relation(fields: [addressId], references: [idAddress], onDelete: Cascade)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [idRestaurant], onDelete: Cascade)
+
+  @@unique([restaurantId, addressId])
+  @@map("address_restaurant")
+}
+
+model Order {
+  idOrder       String         @id @default(cuid()) @map("id_order")
+  payStatus     Boolean        @default(false) @map("pay_status")
+  status        Status
+  createAt      DateTime       @default(now()) @map("created_at")
+  clientId      String         @map("client_id")
+  restarauntId  String         @map("restaraunt_id")
+  addressId     String         @map("address_id")
+  weight        Float?         @map("weight")
+  deliverymanId String?        @map("deliveryman_id")
+  products      OrderProduct[]
+  address       Address        @relation(fields: [addressId], references: [idAddress])
+  client        User           @relation("ClientOrders", fields: [clientId], references: [idUser])
+  deliveryman   User?          @relation("CourierOrders", fields: [deliverymanId], references: [idUser])
+  restaraunt    Restaurant     @relation(fields: [restarauntId], references: [idRestaurant])
+
+  @@map("orders")
+}
+
+model Product {
+  idProduct    String         @id @default(cuid()) @map("id_product")
+  name         String
+  timeCooking  Int?           @map("time_cooking")
+  calories     Float?
+  description  String?
+  restaurantId String         @map("restaurant_id")
+  price        Float          @default(0)
+  orders       OrderProduct[]
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [idRestaurant])
+
+  @@map("products")
+}
+
+model OrderProduct {
+  idOrderProduct String  @id @default(cuid()) @map("id_order_product")
+  quantity       Int     @default(1)
+  orderId        String  @map("order_id")
+  productId      String  @map("product_id")
+  price          Float   @default(0)
+  order          Order   @relation(fields: [orderId], references: [idOrder], onDelete: Cascade)
+  product        Product @relation(fields: [productId], references: [idProduct])
+
+  @@unique([orderId, productId])
+  @@map("order_products")
+}
+
+model Organization {
+  idOrganization String       @id @default(cuid()) @map("id_organization")
+  name           String       @unique
+  email          String       @unique
+  phone          String?
+  ownerId        String       @map("owner_id")
+  owner          User         @relation(fields: [ownerId], references: [idUser])
+  restaurants    Restaurant[]
+
+  @@index([ownerId])
+  @@map("organizations")
+}
+
+model Restaurant {
+  idRestaurant   String             @id @default(cuid()) @map("id_restaurant")
+  name           String
+  description    String?
+  cuisine        String?
+  timeOpened     DateTime           @map("time_opened") @db.Time(0)
+  timeClosed     DateTime           @map("time_closed") @db.Time(0)
+  organizationId String             @map("organization_id")
+  address        AddressRestaraunt?
+  orders         Order[]
+  products       Product[]
+  organization   Organization       @relation(fields: [organizationId], references: [idOrganization])
+  cashiers       User[]             @relation("CashierRestaurant")
+
+  @@map("restaurants")
+}
+
 enum Role {
   GOD
   MODERATOR
@@ -19,198 +176,7 @@ enum Role {
 enum Status {
   CREATED
   COOKING
-  COURIER_ACCEPTED
   FROM_DELIVERYMAN
   DELIVERED
-}
-
-model User {
-  idUser   String  @id @default(cuid()) @map("id_user")
-  email    String  @unique
-  phone    String? @unique
-  password String
-
-  surname    String?
-  name       String?
-  patronymic String?
-
-  // Email verification
-  verificationToken String? @default(cuid()) @map("verification_token")
-
-  // SMS OTP verification
-  otpCode      String?   @map("otp_code")
-  otpExpiresAt DateTime? @map("otp_expires_at")
-
-  role      UserRole[]
-  shifts    Shift[]
-  address   AddressUser[]
-  orders         Order[] @relation("ClientOrders")
-  deliveryOrders Order[] @relation("CourierOrders")
-  organizations Organization[]
-
-  // Cashier assignment
-  cashierRestaurant   Restaurant? @relation("CashierRestaurant", fields: [cashierRestaurantId], references: [idRestaurant])
-  cashierRestaurantId String?     @map("cashier_restaurant_id")
-
-  @@index([cashierRestaurantId])
-  @@map("users")
-}
-
-model UserRole {
-   idUserRole String   @id @default(cuid()) @map("id_user_role")
-   role       Role
-
-   userId     String @map("user_id")
-   user       User   @relation(fields: [userId], references: [idUser], onDelete: Cascade)
-
-   @@unique([userId, role])
-   @@map("user_roles")
- }
-
-model Shift {
-  idShift String @id @default(cuid()) @map("id_shift")
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [idUser])
-
-  createAt DateTime  @default(now()) @map("created_at")
-  stopAt   DateTime? @map("stop_at")
-
-  @@map("shifts")
-}
-
-model Address {
-  idAddress String @id @default(cuid()) @map("id_address")
-
-  address   String
-  entrance Int?
-  doorphone String?
-  flat String?
-  floor String?
-  comment String?
-
-  cordinatY Float
-  cordinatX Float
-
-  addressUser AddressUser[]
-  addressRestaraunt AddressRestaraunt?
-  orders Order[]
-
-  @@map("addresses")
-}
-
-model AddressUser{
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [idUser], onDelete: Cascade)
-
-  addressId String @map("address_id")
-  address   Address   @relation(fields: [addressId], references: [idAddress], onDelete: Cascade)
-
-  @@unique([userId, addressId])
-  @@map("address_user")
-}
-
-model AddressRestaraunt{
-  restaurantId String @unique @map("restataunt_id")
-  restaurant Restaurant @relation(fields: [restaurantId], references: [idRestaurant], onDelete: Cascade)
-
-  addressId String @unique @map("address_id")
-  address   Address   @relation(fields: [addressId], references: [idAddress], onDelete: Cascade)
-
-  @@unique([restaurantId, addressId])
-  @@map("address_restaurant")
-}
-
-model Order {
-  idOrder String @id @default(cuid()) @map("id_order")
-
-  payStatus Boolean @default(false) @map("pay_status")
-  status    Status
-  weight    Float? @map("weight")
-
-  createAt DateTime @default(now()) @map("created_at")
-
-  clientId     String @map("client_id")
-  deliverymanId String? @map("deliveryman_id")
-  restarauntId String @map("restaraunt_id")
-  addressId    String @map("address_id")
-
-  address    Address    @relation(fields: [addressId], references: [idAddress])
-  client     User       @relation("ClientOrders", fields: [clientId], references: [idUser])
-  deliveryman User?     @relation("CourierOrders", fields: [deliverymanId], references: [idUser])
-  restaraunt Restaurant @relation(fields: [restarauntId], references: [idRestaurant])
-  products   OrderProduct[]
-
-  @@map("orders")
-}
-
-model Product {
-  idProduct String @id @default(cuid()) @map("id_product")
-
-  name        String
-  price       Float  @default(0)
-  timeCooking Int?    @map("time_cooking")
-  calories    Float?
-  description String?
-
-  orders     OrderProduct[]
-
-  restaurantId String     @map("restaurant_id")
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [idRestaurant])
-
-  @@map("products")
-}
-
-model OrderProduct {
-  idOrderProduct String @id @default(cuid()) @map("id_order_product")
-
-  quantity Int     @default(1)
-  price    Float   @default(0)
-
-  orderId   String  @map("order_id")
-  productId String  @map("product_id")
-
-  order   Order   @relation(fields: [orderId], references: [idOrder], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [idProduct])
-
-  @@unique([orderId, productId])
-  @@map("order_products")
-}
-
-model Organization {
-  idOrganization String @id @default(cuid()) @map("id_organization")
-
-  name  String  @unique
-  email String  @unique
-  phone String?
-
-  restaurants Restaurant[]
-
-  ownerId String @map("owner_id")
-  owner   User   @relation(fields: [ownerId], references: [idUser])
-
-  @@index([ownerId])
-  @@map("organizations")
-}
-
-model Restaurant {
-  idRestaurant String @id @default(cuid()) @map("id_restaurant")
-
-  name        String
-  description String?
-  cuisine     String?
-
-  timeOpened DateTime @db.Time(0) @map("time_opened")
-  timeClosed DateTime @db.Time(0) @map("time_closed")
-
-  organizationId String       @map("organization_id")
-  organization   Organization @relation(fields: [organizationId], references: [idOrganization])
-
-  address AddressRestaraunt?
-
-  products Product[]
-  orders   Order[]
-  cashiers User[]    @relation("CashierRestaurant")
-
-  @@map("restaurants")
+  COURIER_ACCEPTED
 }

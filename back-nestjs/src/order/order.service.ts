@@ -251,6 +251,12 @@ export class OrderService {
       throw new ForbiddenException("Not a cashier");
     }
 
+    const isCashier = user.role.some((r) => r.role === Role.CASHIER);
+
+    if (!isCashier) {
+      throw new ForbiddenException("Not a cashier");
+    }
+
     const order = await this.prisma.order.findUnique({
       where: { idOrder: orderId },
     });
@@ -289,6 +295,12 @@ export class OrderService {
       throw new ForbiddenException("Not a cashier");
     }
 
+    const isCashier = user.role.some((r) => r.role === Role.CASHIER);
+
+    if (!isCashier) {
+      throw new ForbiddenException("Not a cashier");
+    }
+
     const order = await this.prisma.order.findUnique({
       where: { idOrder: orderId },
     });
@@ -307,11 +319,11 @@ export class OrderService {
       );
     }
 
-    // Use raw SQL to bypass Prisma enum bug
-    await this.prisma.$executeRawUnsafe(
-      `UPDATE "orders" SET status = 'FROM_DELIVERYMAN' WHERE id_order = $1`,
-      orderId,
-    );
+    // Use parameterized raw SQL
+    await this.prisma.$executeRaw`
+      UPDATE "orders" SET status = 'FROM_DELIVERYMAN'::"Status"
+      WHERE id_order = ${orderId}
+    `;
 
     return this.prisma.order.findUnique({
       where: { idOrder: orderId },

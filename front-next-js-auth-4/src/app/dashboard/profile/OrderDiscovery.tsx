@@ -49,7 +49,7 @@ export function OrderDiscovery() {
       setErrorMessage(
         Array.isArray(message)
           ? message.join(", ")
-          : message || "Failed to accept order",
+          : message || "Не удалось принять заказ",
       );
       queryClient.invalidateQueries({ queryKey: ["active-order"] });
       queryClient.invalidateQueries({ queryKey: ["order-discovery"] });
@@ -70,7 +70,7 @@ export function OrderDiscovery() {
       setErrorMessage(
         Array.isArray(message)
           ? message.join(", ")
-          : message || "Failed to complete order",
+          : message || "Не удалось завершить заказ",
       );
     },
   });
@@ -91,7 +91,7 @@ export function OrderDiscovery() {
   return (
     <div className="mt-8 w-full max-w-2xl">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-xl font-semibold">Order Delivery</h3>
+        <h3 className="text-xl font-semibold">Доставка заказов</h3>
         <button
           type="button"
           onClick={() => {
@@ -103,7 +103,7 @@ export function OrderDiscovery() {
           disabled={isRefreshing}
           className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary disabled:opacity-60"
         >
-          {isRefreshing ? "Refreshing..." : "Refresh"}
+          {isRefreshing ? "Обновление..." : "Обновить"}
         </button>
       </div>
       {errorMessage && (
@@ -116,22 +116,22 @@ export function OrderDiscovery() {
       ) : activeOrder ? (
         <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4 space-y-2">
           <p>
-            <span className="font-semibold">Order number:</span>{" "}
+            <span className="font-semibold">Номер заказа:</span>{" "}
             {activeOrder.orderNumber}
           </p>
           <p>
-            <span className="font-semibold">Customer:</span>{" "}
+            <span className="font-semibold">Клиент:</span>{" "}
             {activeOrder.customerName}
           </p>
           <p>
-            <span className="font-semibold">Address:</span>{" "}
+            <span className="font-semibold">Адрес:</span>{" "}
             {activeOrder.customerAddress}
           </p>
           <p>
-            <span className="font-semibold">Comments:</span>{" "}
-            {activeOrder.comments || "No comments"}
+            <span className="font-semibold">Комментарии:</span>{" "}
+            {activeOrder.comments || "Нет комментариев"}
           </p>
-          <p className="font-semibold">Items:</p>
+          <p className="font-semibold">Позиции:</p>
           <ul className="list-disc pl-6">
             {activeOrder.items.map((item) => (
               <li key={item.idProduct}>
@@ -140,17 +140,19 @@ export function OrderDiscovery() {
               </li>
             ))}
           </ul>
-          <button
-            type="button"
-            onClick={() => completeOrder(activeOrder.idOrder)}
-            disabled={isCompletePending}
-            className="mt-3 rounded-lg px-4 py-2 font-semibold text-white bg-primary disabled:opacity-60"
-          >
-            {isCompletePending ? "Processing..." : "Order Delivered"}
-          </button>
+          {activeOrder.status === "FROM_DELIVERYMAN" && (
+            <button
+              type="button"
+              onClick={() => completeOrder(activeOrder.idOrder)}
+              disabled={isCompletePending}
+              className="mt-3 rounded-lg px-4 py-2 font-semibold text-white bg-primary disabled:opacity-60"
+            >
+              {isCompletePending ? "Обработка..." : "Завершить заказ"}
+            </button>
+          )}
         </div>
       ) : uniqueOrders.length === 0 ? (
-        <p>No available orders right now.</p>
+        <p>Нет доступных заказов</p>
       ) : (
         <div className="space-y-3">
           {uniqueOrders.map((order) => (
@@ -159,12 +161,12 @@ export function OrderDiscovery() {
               className="rounded-lg border border-zinc-700/60 p-4"
             >
               <p>
-                <span className="font-semibold">Pickup address:</span>{" "}
-                {order.pickupAddress || "Not specified"}
+                <span className="font-semibold">Адрес получения:</span>{" "}
+                {order.pickupAddress || "Не указан"}
               </p>
               <p>
-                <span className="font-semibold">Order weight:</span>{" "}
-                {order.weight ?? "Not specified"}
+                <span className="font-semibold">Вес заказа:</span>{" "}
+                {order.weight ?? "Не указан"}
               </p>
               <button
                 type="button"
@@ -172,7 +174,7 @@ export function OrderDiscovery() {
                 disabled={isAcceptPending || Boolean(activeOrder)}
                 className="mt-3 rounded-lg px-4 py-2 font-semibold text-white bg-primary disabled:opacity-60"
               >
-                {isAcceptPending ? "Accepting..." : "Accept Order"}
+                {isAcceptPending ? "Принятие..." : "Принять заказ"}
               </button>
             </div>
           ))}

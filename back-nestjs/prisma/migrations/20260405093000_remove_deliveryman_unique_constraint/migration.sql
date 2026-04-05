@@ -13,3 +13,7 @@ BEGIN
         DROP INDEX IF EXISTS "orders.deliveryman_id_unique";
     END IF;
 END $$;
+
+-- Drop partial unique index that limited couriers to one active order
+-- This was preventing couriers from handling multiple deliveries
+DROP INDEX IF EXISTS "orders_one_active_per_courier_idx";

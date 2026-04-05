@@ -34,7 +34,7 @@ const STATUS_FLOW: Record<
     label: "Отдать курьеру",
     action: "handover",
   },
-  FROM_DELIVERYMAN: { next: "DELIVERED", label: "Завершить", action: "status" },
+  FROM_DELIVERYMAN: { next: "", label: "" },
   DELIVERED: { next: "", label: "" },
 };
 

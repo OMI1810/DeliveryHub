@@ -1,12 +1,12 @@
 class DashboardPages {
-  HOME = "/dashboard";
-  PROFILE = `${this.HOME}/profile`;
-  ADDRESSES = `${this.HOME}/addresses`;
-  CART = `${this.HOME}/cart`;
-  ORDERS = `${this.HOME}/orders`;
-  WORK = `${this.HOME}/work`;
-  RESTAURANTS = `${this.HOME}/restaurants`;
-  RESTAURANT_MENU = (id: string) => `${this.HOME}/restaurant/${id}`;
+  HOME = "/";
+  PROFILE = "/profile";
+  ADDRESSES = "/profile/addresses";
+  CART = "/cart";
+  ORDERS = "/orders";
+  WORK = "/work";
+  RESTAURANTS = "/restaurants";
+  RESTAURANT_MENU = (id: string) => `/restaurant/${id}`;
 }
 
 export const DASHBOARD_PAGES = new DashboardPages();

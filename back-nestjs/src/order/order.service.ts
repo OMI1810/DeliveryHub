@@ -10,7 +10,7 @@ import { CreateOrderDto } from "./dto/create-order.dto";
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   /** Создать заказ */
   async create(userId: string, dto: CreateOrderDto) {
@@ -68,7 +68,7 @@ export class OrderService {
 
       // Добавляем продукты в заказ
       for (const item of dto.items) {
-        const product = products.find((p) => p.idProduct === item.productId)
+        const product = products.find((p) => p.idProduct === item.productId);
 
         await tx.orderProduct.create({
           data: {
@@ -147,81 +147,72 @@ export class OrderService {
       where: { idUser: userId },
       include: {
         cashierRestaurant: true,
-        role: true
-      }
-    })
+        role: true,
+      },
+    });
 
     const orders = user?.cashierRestaurant
       ? await this.prisma.order.findMany({
-        where: { restarauntId: user.cashierRestaurantId },
-        select: {
-          idOrder: true,
-          restarauntId: true,
-          status: true,
-          createAt: true
-        }
-      })
-      : []
+          where: { restarauntId: user.cashierRestaurantId },
+          select: {
+            idOrder: true,
+            restarauntId: true,
+            status: true,
+            createAt: true,
+          },
+        })
+      : [];
 
     const allOrders = await this.prisma.order.findMany({
       select: {
         idOrder: true,
         restarauntId: true,
         status: true,
-        createAt: true
-      }
-    })
+        createAt: true,
+      },
+    });
 
     return {
       user: user
         ? {
-          idUser: user.idUser,
-          email: user.email,
-          cashierRestaurantId: user.cashierRestaurantId,
-          cashierRestaurant: user.cashierRestaurant
-            ? {
-              idRestaurant: user.cashierRestaurant.idRestaurant,
-              name: user.cashierRestaurant.name
-            }
-            : null,
-          roles: user.role.map(r => r.role)
-        }
+            idUser: user.idUser,
+            email: user.email,
+            cashierRestaurantId: user.cashierRestaurantId,
+            cashierRestaurant: user.cashierRestaurant
+              ? {
+                  idRestaurant: user.cashierRestaurant.idRestaurant,
+                  name: user.cashierRestaurant.name,
+                }
+              : null,
+            roles: user.role.map((r) => r.role),
+          }
         : null,
       ordersForCashierRestaurant: orders,
       allOrdersInDb: allOrders,
       matchCheck: user?.cashierRestaurantId
-        ? allOrders.filter(o => o.restarauntId === user.cashierRestaurantId)
-        : []
-    }
+        ? allOrders.filter((o) => o.restarauntId === user.cashierRestaurantId)
+        : [],
+    };
   }
 
   /** Заказы ресторана для кассира */
   async getCashierOrders(userId: string) {
-    console.log('[DEBUG getCashierOrders] userId:', userId)
-
     const user = await this.prisma.user.findUnique({
       where: { idUser: userId },
       include: {
         cashierRestaurant: true,
-        role: true
-      }
-    })
-
-    console.log('[DEBUG getCashierOrders] user found:', !!user)
-    console.log('[DEBUG getCashierOrders] cashierRestaurantId:', user?.cashierRestaurantId)
-    console.log('[DEBUG getCashierOrders] roles:', user?.role.map(r => r.role))
+        role: true,
+      },
+    });
 
     if (!user?.cashierRestaurant) {
-      console.log('[DEBUG getCashierOrders] No restaurant assigned')
-      throw new ForbiddenException("Not a cashier or no restaurant assigned")
+      throw new ForbiddenException("Not a cashier or no restaurant assigned");
     }
 
-    const isCashier = user.role.some(r => r.role === Role.CASHIER)
-    console.log('[DEBUG getCashierOrders] isCashier:', isCashier)
+    const isCashier = user.role.some((r) => r.role === Role.CASHIER);
 
     if (!isCashier) {
-      console.log('[DEBUG getCashierOrders] No CASHIER role')
-      throw new ForbiddenException("Not a cashier")
+      throw new ForbiddenException("Not a cashier");
     }
 
     const orders = await this.prisma.order.findMany({
@@ -239,40 +230,37 @@ export class OrderService {
             idUser: true,
             name: true,
             surname: true,
-            phone: true
-          }
-        }
+            phone: true,
+          },
+        },
       },
       orderBy: { createAt: "desc" },
-    })
+    });
 
-    console.log('[DEBUG getCashierOrders] orders count:', orders.length)
-    console.log('[DEBUG getCashierOrders] orders:', orders.map(o => ({ id: o.idOrder, status: o.status })))
-
-    return orders
+    return orders;
   }
 
   /** Сменить статус заказа (кассир) */
   async updateOrderStatus(userId: string, orderId: string, status: string) {
     const user = await this.prisma.user.findUnique({
       where: { idUser: userId },
-      include: { cashierRestaurant: true, role: true }
-    })
+      include: { cashierRestaurant: true, role: true },
+    });
 
     if (!user?.cashierRestaurant) {
-      throw new ForbiddenException("Not a cashier")
+      throw new ForbiddenException("Not a cashier");
     }
 
     const order = await this.prisma.order.findUnique({
-      where: { idOrder: orderId }
-    })
+      where: { idOrder: orderId },
+    });
 
     if (!order) {
-      throw new NotFoundException("Order not found")
+      throw new NotFoundException("Order not found");
     }
 
     if (order.restarauntId !== user.cashierRestaurantId) {
-      throw new ForbiddenException("Order does not belong to your restaurant")
+      throw new ForbiddenException("Order does not belong to your restaurant");
     }
 
     return this.prisma.order.update({
@@ -281,8 +269,8 @@ export class OrderService {
       include: {
         products: { include: { product: true } },
         address: true,
-        restaraunt: true
-      }
-    })
+        restaraunt: true,
+      },
+    });
   }
 }

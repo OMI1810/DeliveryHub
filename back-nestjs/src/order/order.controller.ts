@@ -1,4 +1,3 @@
-import { Role } from '@prisma/client'
 import { Auth } from "@/auth/decorators/auth.decorator";
 import { CurrentUser } from "@/auth/decorators/user.decorator";
 import {
@@ -12,22 +11,27 @@ import {
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
+import { Role } from "@prisma/client";
 import { OrderService } from "./order.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
+import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 
 @Controller("orders")
 export class OrderController {
-  constructor(private readonly orderService: OrderService) { }
-
-  @Get("test")
-  test() {
-    return { message: "Order controller works!" };
-  }
+  constructor(private readonly orderService: OrderService) {}
 
   @Auth()
   @Get()
   async getMyOrders(@CurrentUser("idUser") userId: string) {
     return this.orderService.getOrdersByUserId(userId);
+  }
+
+  // === Cashier endpoints (before :id route!) ===
+
+  @Auth(Role.CASHIER)
+  @Get("cashier")
+  async getCashierOrders(@CurrentUser("idUser") userId: string) {
+    return this.orderService.getCashierOrders(userId);
   }
 
   @Auth()
@@ -50,29 +54,14 @@ export class OrderController {
     return this.orderService.create(userId, dto);
   }
 
-  /** Заказы для кассира */
-  @Auth(Role.CASHIER)
-  @Get("cashier")
-  async getCashierOrders(@CurrentUser("idUser") userId: string) {
-    return this.orderService.getCashierOrders(userId);
-  }
-
-  /** Диагностика: информация о кассире */
-  @Auth(Role.CASHIER)
-  @Get("cashier/debug")
-  async getCashierDebug(@CurrentUser("idUser") userId: string) {
-    return this.orderService.getCashierDebug(userId);
-  }
-
-  /** Сменить статус заказа (кассир) */
   @Auth(Role.CASHIER)
   @UsePipes(new ValidationPipe())
-  @Patch(":id/status")
+  @Patch(":orderId/status")
   async updateOrderStatus(
     @CurrentUser("idUser") userId: string,
-    @Param("id") id: string,
-    @Body("status") status: string,
+    @Param("orderId") orderId: string,
+    @Body() dto: UpdateOrderStatusDto,
   ) {
-    return this.orderService.updateOrderStatus(userId, id, status);
+    return this.orderService.updateOrderStatus(userId, orderId, dto.status);
   }
 }

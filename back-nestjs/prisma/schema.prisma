@@ -46,9 +46,10 @@ model User {
   orders         Order[] @relation("ClientOrders")
   deliveryOrders Order[] @relation("CourierOrders")
   organizations Organization[]
-  cashierRestaurant Restaurant? @relation("CashierRestaurant", fields: [cashierRestaurantId], references: [idRestaurant])
 
-  cashierRestaurantId String? @map("cashier_restaurant_id")
+  // Cashier assignment
+  cashierRestaurant   Restaurant? @relation("CashierRestaurant", fields: [cashierRestaurantId], references: [idRestaurant])
+  cashierRestaurantId String?     @map("cashier_restaurant_id")
 
   @@index([cashierRestaurantId])
   @@map("users")
@@ -146,7 +147,7 @@ model Product {
   idProduct String @id @default(cuid()) @map("id_product")
 
   name        String
-  price       Float
+  price       Float  @default(0)
   timeCooking Int?    @map("time_cooking")
   calories    Float?
   description String?
@@ -162,8 +163,8 @@ model Product {
 model OrderProduct {
   idOrderProduct String @id @default(cuid()) @map("id_order_product")
 
-  quantity Int @default(1)
-  price    Float
+  quantity Int     @default(1)
+  price    Float   @default(0)
 
   orderId   String  @map("order_id")
   productId String  @map("product_id")
@@ -208,7 +209,7 @@ model Restaurant {
 
   products Product[]
   orders   Order[]
-  cashiers User[] @relation("CashierRestaurant")
+  cashiers User[]    @relation("CashierRestaurant")
 
   @@map("restaurants")
 }

@@ -1,5 +1,6 @@
 import { instance } from '@/api/axios'
 import { IRestaurant, IRestaurantCreate, IRestaurantUpdate, IPublicRestaurant } from '@/types/restaurant.types'
+import { IProduct } from '@/types/product.types'
 
 class RestaurantService {
 	private _BASE = (orgId: string) => `/organizations/${orgId}/restaurants`
@@ -26,6 +27,14 @@ class RestaurantService {
 
 	async getAllPublic() {
 		return instance.get<IPublicRestaurant[]>('/restaurants/public')
+	}
+
+	async getPublicById(id: string) {
+		return instance.get<IPublicRestaurant>(`/restaurants/${id}`)
+	}
+
+	async getRestaurantProducts(restaurantId: string) {
+		return instance.get<IProduct[]>(`/restaurants/${restaurantId}/products`)
 	}
 }
 

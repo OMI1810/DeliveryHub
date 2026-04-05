@@ -1,6 +1,7 @@
 'use client'
 
 import { MiniLoader } from '@/components/ui/MiniLoader'
+import { DASHBOARD_PAGES } from '@/config/pages/dashboard.config'
 import restaurantService from '@/services/restaurant.service'
 import { IPublicRestaurant } from '@/types/restaurant.types'
 import { useQuery } from '@tanstack/react-query'
@@ -118,7 +119,7 @@ function RestaurantCard({ restaurant }: { restaurant: IPublicRestaurant }) {
 			</p>
 
 			<Link
-				href={`/dashboard/restaurant/${restaurant.idRestaurant}`}
+				href={DASHBOARD_PAGES.RESTAURANT_MENU(restaurant.idRestaurant)}
 				className="inline-block text-primary text-sm hover:underline"
 			>
 				View menu →

@@ -214,4 +214,36 @@ export class RestaurantService {
 			orderBy: { name: 'asc' }
 		})
 	}
+
+	async getPublicById(id: string) {
+		return this.prisma.restaurant.findUnique({
+			where: { idRestaurant: id },
+			include: {
+				organization: {
+					select: {
+						idOrganization: true,
+						name: true
+					}
+				},
+				address: {
+					include: {
+						address: {
+							select: {
+								address: true,
+								cordinatX: true,
+								cordinatY: true
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+
+	async getPublicProducts(restaurantId: string) {
+		return this.prisma.product.findMany({
+			where: { restaurantId },
+			orderBy: { name: 'asc' }
+		})
+	}
 }

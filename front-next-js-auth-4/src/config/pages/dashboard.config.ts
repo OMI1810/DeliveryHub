@@ -6,6 +6,7 @@ class DashboardPages {
   ORDERS = `${this.HOME}/orders`;
   WORK = `${this.HOME}/work`;
   RESTAURANTS = `${this.HOME}/restaurants`;
+  RESTAURANT_MENU = (id: string) => `${this.HOME}/restaurant/${id}`;
 }
 
 export const DASHBOARD_PAGES = new DashboardPages();

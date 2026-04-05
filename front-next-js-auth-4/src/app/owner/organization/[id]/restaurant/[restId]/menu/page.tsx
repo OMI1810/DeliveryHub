@@ -433,7 +433,14 @@ function RestEditForm({ rest, orgId, restId, onCancel, onSuccess }: {
 	onCancel: () => void
 	onSuccess: () => void
 }) {
-	const { register, handleSubmit, formState: { errors } } = useForm<IRestaurantUpdate>({
+	const formatTime = (value: string): string => {
+		const digits = value.replace(/[^\d]/g, '')
+		if (digits.length === 0) return ''
+		if (digits.length <= 2) return digits
+		return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`
+	}
+
+	const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<IRestaurantUpdate>({
 		defaultValues: {
 			name: rest.name,
 			cuisine: rest.cuisine || '',
@@ -471,16 +478,24 @@ function RestEditForm({ rest, orgId, restId, onCancel, onSuccess }: {
 					<div>
 						<label className="block text-xs text-zinc-400 mb-1">Open (HH:MM)</label>
 						<input
-							{...register('timeOpened', { required: 'Required' })}
+							value={watch('timeOpened') || ''}
+							onChange={(e) => setValue('timeOpened', formatTime(e.target.value))}
+							maxLength={5}
 							className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+							placeholder="10:00"
 						/>
+						{errors.timeOpened && <span className="text-red-500 text-xs">{errors.timeOpened.message}</span>}
 					</div>
 					<div>
 						<label className="block text-xs text-zinc-400 mb-1">Close (HH:MM)</label>
 						<input
-							{...register('timeClosed', { required: 'Required' })}
+							value={watch('timeClosed') || ''}
+							onChange={(e) => setValue('timeClosed', formatTime(e.target.value))}
+							maxLength={5}
 							className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+							placeholder="22:00"
 						/>
+						{errors.timeClosed && <span className="text-red-500 text-xs">{errors.timeClosed.message}</span>}
 					</div>
 				</div>
 				<div className="flex gap-3 pt-2">

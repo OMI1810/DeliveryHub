@@ -2,10 +2,12 @@
 
 import { MiniLoader } from '@/components/ui/MiniLoader'
 import { Modal } from '@/components/ui/Modal'
+import { PhoneInput } from '@/components/ui/PhoneInput'
 import { OWNER_PAGES } from '@/config/pages/owner.config'
 import organizationService from '@/services/organization.service'
 import restaurantService from '@/services/restaurant.service'
 import { IOrganization, IOrganizationUpdate } from '@/types/organization.types'
+import { cleanPhone, validatePhone } from '@/utils/phone'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -197,12 +199,24 @@ function OrgEditForm({ org, onCancel, onSuccess }: {
 	onCancel: () => void
 	onSuccess: () => void
 }) {
-	const { register, handleSubmit, formState: { errors } } = useForm<IOrganizationUpdate>({
+	const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<IOrganizationUpdate>({
 		defaultValues: { name: org.name, email: org.email, phone: org.phone || '' }
 	})
 
+	// Register phone with validation
+	register('phone', {
+		validate: (value) => {
+			if (!value) return true // optional field
+			if (!validatePhone(value)) return 'Invalid phone format'
+			return true
+		}
+	})
+
 	const { mutate, isPending } = useMutation({
-		mutationFn: (data: IOrganizationUpdate) => organizationService.update(org.idOrganization, data),
+		mutationFn: (data: IOrganizationUpdate) => {
+			const cleaned = data.phone ? cleanPhone(data.phone) : undefined
+			return organizationService.update(org.idOrganization, { ...data, phone: cleaned })
+		},
 		onSuccess: () => { toast.success('Organization updated'); onSuccess() },
 		onError: (err: any) => toast.error(err.response?.data?.message?.[0] || 'Failed to update')
 	})
@@ -230,10 +244,12 @@ function OrgEditForm({ org, onCancel, onSuccess }: {
 				</div>
 				<div>
 					<label className="block text-xs text-zinc-400 mb-1">Phone</label>
-					<input
-						{...register('phone')}
-						className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+					<PhoneInput
+						value={watch('phone') || ''}
+						onChange={(value) => setValue('phone', value)}
+						error={!!errors.phone}
 					/>
+					{errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
 				</div>
 				<div className="flex gap-3 pt-2">
 					<button

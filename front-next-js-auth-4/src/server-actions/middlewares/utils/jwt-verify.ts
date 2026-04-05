@@ -1,6 +1,6 @@
 'use server'
 
-import { ITokenInside } from '@/types/auth.types'
+import { ITokenInside, type TProtectUserData } from '@/types/auth.types'
 import { transformUserToState } from '@/utils/transform-user-to-state'
 import * as jose from 'jose'
 
@@ -13,14 +13,18 @@ export async function jwtVerifyServer(accessToken: string) {
 
 		if (!payload) return null
 
-		return transformUserToState(payload)
+		// Map JWT payload { id, roles } → TProtectUserData { idUser, role }
+		const userData: TProtectUserData = {
+			idUser: payload.id,
+			role: payload.roles
+		}
+
+		return transformUserToState(userData)
 	} catch (error) {
-		// Обработка ошибок, связанных с верификацией JWT
 		if (
 			error instanceof Error &&
 			error.message.includes('exp claim timestamp check failed')
 		) {
-			// Токен истек
 			console.log('Токен истек')
 			return null
 		}

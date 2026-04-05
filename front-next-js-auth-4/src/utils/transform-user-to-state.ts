@@ -11,23 +11,24 @@ export type TUserDataState = {
 	isCashier: boolean
 }
 
-const hasRole = (role: UserRole | UserRole[] | undefined, target: UserRole): boolean => {
-	if (!role) return false
-	if (Array.isArray(role)) return role.includes(target)
-	return role === target
+const hasRole = (roles: UserRole | UserRole[] | undefined, target: UserRole): boolean => {
+	if (!roles) return false
+	const arr = Array.isArray(roles) ? roles : [roles]
+	return arr.includes(target)
 }
 
 export const transformUserToState = (
 	user: TProtectUserData
 ): TUserDataState | null => {
+	const roles = user.role
 	return {
-		...user,
-		role: Array.isArray(user.role) ? user.role[0] : user.role,
+		idUser: user.idUser,
+		role: Array.isArray(roles) ? roles[0] : roles,
 		isLoggedIn: true,
-		isGod: hasRole(user.role, UserRole.GOD),
-		isModerator: hasRole(user.role, UserRole.MODERATOR),
-		isOwner: hasRole(user.role, UserRole.OWNER),
-		isDeliveryman: hasRole(user.role, UserRole.DELIVERYMAN),
-		isCashier: hasRole(user.role, UserRole.CASHIER)
+		isGod: hasRole(roles, UserRole.GOD),
+		isModerator: hasRole(roles, UserRole.MODERATOR),
+		isOwner: hasRole(roles, UserRole.OWNER),
+		isDeliveryman: hasRole(roles, UserRole.DELIVERYMAN),
+		isCashier: hasRole(roles, UserRole.CASHIER)
 	}
 }

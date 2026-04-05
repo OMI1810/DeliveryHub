@@ -20,13 +20,16 @@ export const UserRole = {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
 export interface ITokenInside {
-	idUser: string
-	role: UserRole | UserRole[]
+	id: string
+	roles: UserRole[]
 	iat: number
 	exp: number
 }
 
-export type TProtectUserData = Omit<ITokenInside, 'iat' | 'exp'>
+export type TProtectUserData = {
+	idUser: string
+	role: UserRole | UserRole[]
+}
 
 export interface IFormData extends Pick<IUser, 'email'> {
 	password: string

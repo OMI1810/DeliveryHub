@@ -7,9 +7,9 @@ import { PrismaService } from "src/prisma.service";
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-  private readonly ACTIVE_COURIER_ORDER_STATUS = Status.FROM_DELIVERYMAN;
+  private readonly ACTIVE_COURIER_ORDER_STATUS = Status.COURIER_ACCEPTED;
 
   private mapShiftResponse(shift: Shift) {
     return {
@@ -40,6 +40,9 @@ export class UserService {
     return this.prisma.user.findUnique({
       where: {
         idUser: id,
+      },
+      include: {
+        role: true,
       },
     });
   }
@@ -175,7 +178,7 @@ export class UserService {
   }
 
   async getOrderDiscoveryList() {
-    return this.prisma.$queryRaw<
+    const result = await this.prisma.$queryRaw<
       Array<{
         idOrder: string;
         pickupAddress: string | null;
@@ -190,16 +193,19 @@ export class UserService {
       LEFT JOIN restaurants r ON r.id_restaurant = o.restaraunt_id
       LEFT JOIN address_restaurant ar ON ar.restataunt_id = r.id_restaurant
       LEFT JOIN addresses a ON a.id_address = ar.address_id
-      WHERE o.status IN ('CREATED', 'COOKING') AND o.deliveryman_id IS NULL
+      WHERE o.status = 'COOKING' AND o.deliveryman_id IS NULL
       ORDER BY o.created_at DESC
     `;
+
+    console.log("[DEBUG discovery] found orders:", result.length);
+    return result;
   }
 
   private async getCourierActiveOrderByUser(
     dbClient: PrismaService | Prisma.TransactionClient,
     userId: string,
   ) {
-    const activeOrder = (await dbClient.order.findFirst({
+    const activeOrder = await dbClient.order.findFirst({
       where: {
         deliverymanId: userId,
         status: this.ACTIVE_COURIER_ORDER_STATUS,
@@ -219,17 +225,21 @@ export class UserService {
           },
         },
         products: {
-          select: {
-            idProduct: true,
-            name: true,
-            description: true,
+          include: {
+            product: {
+              select: {
+                idProduct: true,
+                name: true,
+                description: true,
+              },
+            },
           },
         },
       },
       orderBy: {
         createAt: "desc",
       },
-    } as any)) as any;
+    });
 
     if (!activeOrder) {
       return null;
@@ -248,10 +258,10 @@ export class UserService {
       idOrder: activeOrder.idOrder,
       status: activeOrder.status,
       orderNumber: activeOrder.idOrder,
-      items: activeOrder.products.map((product) => ({
-        idProduct: product.idProduct,
-        name: product.name,
-        description: product.description,
+      items: activeOrder.products.map((op) => ({
+        idProduct: op.product.idProduct,
+        name: op.product.name,
+        description: op.product.description,
       })),
       customerName: customerName || "Unknown customer",
       customerAddress: activeOrder.address.address,
@@ -280,7 +290,9 @@ export class UserService {
         });
 
         if (!activeShift) {
-          throw new BadRequestException("Courier must be online to accept orders");
+          throw new BadRequestException(
+            "Courier must be online to accept orders",
+          );
         }
 
         const activeCourierOrder = await tx.order.findFirst({
@@ -294,9 +306,7 @@ export class UserService {
         } as any);
 
         if (activeCourierOrder && activeCourierOrder.idOrder !== orderId) {
-          throw new BadRequestException(
-            "Courier already has an active order",
-          );
+          throw new BadRequestException("Courier already has an active order");
         }
 
         if (activeCourierOrder?.idOrder === orderId) {
@@ -306,9 +316,7 @@ export class UserService {
         const updatedOrder = await tx.order.updateMany({
           where: {
             idOrder: orderId,
-            status: {
-              in: [Status.CREATED, Status.COOKING],
-            },
+            status: Status.COOKING,
             deliverymanId: null,
           },
           data: {
@@ -340,7 +348,9 @@ export class UserService {
             return this.getCourierActiveOrderByUser(tx, userId);
           }
 
-          throw new BadRequestException("Order already accepted or unavailable");
+          throw new BadRequestException(
+            "Order already accepted or unavailable",
+          );
         }
 
         return this.getCourierActiveOrderByUser(tx, userId);
@@ -404,5 +414,40 @@ export class UserService {
 
       return deliveredOrder;
     });
+  }
+
+  /** Добавить роль DELIVERYMAN пользователю (не удаляя существующие роли) */
+  async becomeDeliveryman(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { idUser: userId },
+      include: { role: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException("User not found");
+    }
+
+    const hasDeliverymanRole = user.role.some(
+      (r) => r.role === Role.DELIVERYMAN,
+    );
+
+    if (hasDeliverymanRole) {
+      return {
+        message: "Already a deliveryman",
+        roles: user.role.map((r) => r.role),
+      };
+    }
+
+    await this.prisma.userRole.create({
+      data: {
+        userId,
+        role: Role.DELIVERYMAN,
+      },
+    });
+
+    return {
+      message: "Deliveryman role added",
+      roles: [...user.role.map((r) => r.role), Role.DELIVERYMAN],
+    };
   }
 }

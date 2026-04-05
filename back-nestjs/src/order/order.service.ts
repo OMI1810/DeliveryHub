@@ -263,9 +263,58 @@ export class OrderService {
       throw new ForbiddenException("Order does not belong to your restaurant");
     }
 
-    return this.prisma.order.update({
+    await this.prisma.$executeRaw`
+      UPDATE "orders" SET status = ${status}::"Status"
+      WHERE id_order = ${orderId}
+    `;
+
+    return this.prisma.order.findUnique({
       where: { idOrder: orderId },
-      data: { status: status as Status },
+      include: {
+        products: { include: { product: true } },
+        address: true,
+        restaraunt: true,
+      },
+    });
+  }
+
+  /** Кассир отдаёт заказ курьеру (COURIER_ACCEPTED → FROM_DELIVERYMAN) */
+  async handoverToCourier(userId: string, orderId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { idUser: userId },
+      include: { cashierRestaurant: true, role: true },
+    });
+
+    if (!user?.cashierRestaurant) {
+      throw new ForbiddenException("Not a cashier");
+    }
+
+    const order = await this.prisma.order.findUnique({
+      where: { idOrder: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    if (order.restarauntId !== user.cashierRestaurantId) {
+      throw new ForbiddenException("Order does not belong to your restaurant");
+    }
+
+    if (order.status !== Status.COURIER_ACCEPTED) {
+      throw new BadRequestException(
+        "Order must be in COURIER_ACCEPTED status to handover",
+      );
+    }
+
+    // Use raw SQL to bypass Prisma enum bug
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE "orders" SET status = 'FROM_DELIVERYMAN' WHERE id_order = $1`,
+      orderId,
+    );
+
+    return this.prisma.order.findUnique({
+      where: { idOrder: orderId },
       include: {
         products: { include: { product: true } },
         address: true,

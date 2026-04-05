@@ -64,4 +64,14 @@ export class OrderController {
   ) {
     return this.orderService.updateOrderStatus(userId, orderId, dto.status);
   }
+
+  @Auth(Role.CASHIER)
+  @HttpCode(200)
+  @Patch(":orderId/handover")
+  async handoverToCourier(
+    @CurrentUser("idUser") userId: string,
+    @Param("orderId") orderId: string,
+  ) {
+    return this.orderService.handoverToCourier(userId, orderId);
+  }
 }

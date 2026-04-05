@@ -19,6 +19,7 @@ enum Role {
 enum Status {
   CREATED
   COOKING
+  COURIER_ACCEPTED
   FROM_DELIVERYMAN
   DELIVERED
 }

@@ -2,6 +2,7 @@
 export enum OrderStatus {
   CREATED = "CREATED",
   COOKING = "COOKING",
+  COURIER_ACCEPTED = "COURIER_ACCEPTED",
   FROM_DELIVERYMAN = "FROM_DELIVERYMAN",
   DELIVERED = "DELIVERED",
 }
@@ -10,6 +11,7 @@ export enum OrderStatus {
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.CREATED]: "Создан",
   [OrderStatus.COOKING]: "Готовится",
+  [OrderStatus.COURIER_ACCEPTED]: "Принят курьером",
   [OrderStatus.FROM_DELIVERYMAN]: "У курьера",
   [OrderStatus.DELIVERED]: "Доставлен",
 };
@@ -18,6 +20,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   [OrderStatus.CREATED]: "bg-blue-100 text-blue-800",
   [OrderStatus.COOKING]: "bg-yellow-100 text-yellow-800",
+  [OrderStatus.COURIER_ACCEPTED]: "bg-orange-100 text-orange-800",
   [OrderStatus.FROM_DELIVERYMAN]: "bg-purple-100 text-purple-800",
   [OrderStatus.DELIVERED]: "bg-green-100 text-green-800",
 };

@@ -218,6 +218,8 @@ export class UserService {
           select: {
             address: true,
             comment: true,
+            cordinatX: true,
+            cordinatY: true,
           },
         },
         client: {
@@ -234,6 +236,21 @@ export class UserService {
                 idProduct: true,
                 name: true,
                 description: true,
+              },
+            },
+          },
+        },
+        restaraunt: {
+          include: {
+            address: {
+              include: {
+                address: {
+                  select: {
+                    address: true,
+                    cordinatX: true,
+                    cordinatY: true,
+                  },
+                },
               },
             },
           },
@@ -257,7 +274,9 @@ export class UserService {
       .join(" ")
       .trim();
 
-    return {
+    const restaurantAddress = activeOrder.restaraunt.address?.address;
+
+    const result = {
       idOrder: activeOrder.idOrder,
       status: activeOrder.status,
       orderNumber: activeOrder.idOrder,
@@ -268,8 +287,37 @@ export class UserService {
       })),
       customerName: customerName || "Unknown customer",
       customerAddress: activeOrder.address.address,
+      customerCoordinates: {
+        lat: activeOrder.address.cordinatY,
+        lon: activeOrder.address.cordinatX,
+      },
+      restaurantAddress: restaurantAddress?.address ?? "Не указан",
+      restaurantCoordinates: restaurantAddress
+        ? {
+            lat: restaurantAddress.cordinatY,
+            lon: restaurantAddress.cordinatX,
+          }
+        : null,
       comments: activeOrder.address.comment,
     };
+
+    console.log(
+      "[getCourierActiveOrderByUser] result:",
+      JSON.stringify(
+        {
+          idOrder: result.idOrder,
+          status: result.status,
+          restaurantAddress: result.restaurantAddress,
+          restaurantCoordinates: result.restaurantCoordinates,
+          customerAddress: result.customerAddress,
+          customerCoordinates: result.customerCoordinates,
+        },
+        null,
+        2,
+      ),
+    );
+
+    return result;
   }
 
   async getActiveCourierOrder(userId: string) {

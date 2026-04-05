@@ -17,6 +17,9 @@ export interface IOrderActiveItem {
   }>;
   customerName: string;
   customerAddress: string;
+  customerCoordinates: { lat: number; lon: number };
+  restaurantAddress: string;
+  restaurantCoordinates: { lat: number; lon: number } | null;
   comments: string | null;
 }
 

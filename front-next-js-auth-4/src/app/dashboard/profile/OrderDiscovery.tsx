@@ -1,9 +1,19 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import orderDiscoveryService from "@/services/order-discovery.service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const CourierMap = dynamic(
+  () =>
+    import("@/components/ui/address/CourierMap").then((mod) => mod.CourierMap),
+  {
+    ssr: false,
+    loading: () => <div className="w-full h-[250px] bg-zinc-800 rounded-lg" />,
+  },
+);
 
 export function OrderDiscovery() {
   const queryClient = useQueryClient();
@@ -88,6 +98,20 @@ export function OrderDiscovery() {
   const isLoading = isLoadingActiveOrder || isLoadingDiscovery;
   const isRefreshing = isFetchingActiveOrder || isFetchingDiscovery;
 
+  // Debug: log activeOrder changes
+  useEffect(() => {
+    if (activeOrder) {
+      console.log("[OrderDiscovery] activeOrder:", {
+        id: activeOrder.idOrder,
+        status: activeOrder.status,
+        restaurantAddress: activeOrder.restaurantAddress,
+        restaurantCoordinates: activeOrder.restaurantCoordinates,
+        customerAddress: activeOrder.customerAddress,
+        customerCoordinates: activeOrder.customerCoordinates,
+      });
+    }
+  }, [activeOrder]);
+
   return (
     <div className="mt-8 w-full max-w-2xl">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -114,7 +138,7 @@ export function OrderDiscovery() {
       {isLoading ? (
         <p>Loading...</p>
       ) : activeOrder ? (
-        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4 space-y-2">
+        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4 space-y-3">
           <p>
             <span className="font-semibold">Номер заказа:</span>{" "}
             {activeOrder.orderNumber}
@@ -123,6 +147,40 @@ export function OrderDiscovery() {
             <span className="font-semibold">Клиент:</span>{" "}
             {activeOrder.customerName}
           </p>
+
+          {/* Карта: ресторан при COURIER_ACCEPTED, клиент при FROM_DELIVERYMAN */}
+          {activeOrder.status === "COURIER_ACCEPTED" &&
+            activeOrder.restaurantCoordinates && (
+              <div>
+                <p className="text-sm text-zinc-400 mb-1">
+                  📍 Забрать: {activeOrder.restaurantAddress}
+                </p>
+                <CourierMap
+                  center={[
+                    activeOrder.restaurantCoordinates.lat,
+                    activeOrder.restaurantCoordinates.lon,
+                  ]}
+                  label={activeOrder.restaurantAddress}
+                />
+              </div>
+            )}
+
+          {activeOrder.status === "FROM_DELIVERYMAN" &&
+            activeOrder.customerCoordinates && (
+              <div>
+                <p className="text-sm text-zinc-400 mb-1">
+                  📍 Доставить: {activeOrder.customerAddress}
+                </p>
+                <CourierMap
+                  center={[
+                    activeOrder.customerCoordinates.lat,
+                    activeOrder.customerCoordinates.lon,
+                  ]}
+                  label={activeOrder.customerAddress}
+                />
+              </div>
+            )}
+
           <p>
             <span className="font-semibold">Адрес:</span>{" "}
             {activeOrder.customerAddress}

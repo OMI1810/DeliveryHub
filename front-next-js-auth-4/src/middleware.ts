@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     "/profile",
     "/work",
     "/cashier",
+    "/owner",
   ];
 
   if (mainRoutes.some((route) => pathname.startsWith(route))) {
@@ -60,6 +61,7 @@ export const config = {
     "/profile/:path*",
     "/work/:path*",
     "/cashier/:path*",
+    "/owner/:path*",
     "/auth/:path*",
     "/admin/:path*",
     "/manager/:path*",

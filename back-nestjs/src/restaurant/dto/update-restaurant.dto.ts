@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength } from 'class-validator'
+import { IsOptional, IsString, MinLength, Matches } from 'class-validator'
 
 export class UpdateRestaurantDto {
 	@IsOptional()
@@ -12,9 +12,11 @@ export class UpdateRestaurantDto {
 
 	@IsOptional()
 	@IsString()
+	@Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Invalid time format. Use HH:MM (00:00 — 23:59)' })
 	timeOpened?: string
 
 	@IsOptional()
 	@IsString()
+	@Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Invalid time format. Use HH:MM (00:00 — 23:59)' })
 	timeClosed?: string
 }

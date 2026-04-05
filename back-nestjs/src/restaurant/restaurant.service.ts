@@ -153,10 +153,10 @@ export class RestaurantService {
 	async update(orgId: string, restId: string, userId: string, dto: UpdateRestaurantDto) {
 		await this.verifyOrganizationAccess(orgId, userId)
 
-		const updateData: Record<string, unknown> = {
-			name: dto.name,
-			cuisine: dto.cuisine
-		}
+		const updateData: Record<string, unknown> = {}
+
+		if (dto.name !== undefined) updateData.name = dto.name
+		if (dto.cuisine !== undefined) updateData.cuisine = dto.cuisine
 
 		// Parse time strings to Date objects for @db.Time(0)
 		if (dto.timeOpened) {

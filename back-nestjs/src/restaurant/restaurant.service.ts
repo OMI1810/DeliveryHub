@@ -153,9 +153,31 @@ export class RestaurantService {
 	async update(orgId: string, restId: string, userId: string, dto: UpdateRestaurantDto) {
 		await this.verifyOrganizationAccess(orgId, userId)
 
+		const updateData: Record<string, unknown> = {
+			name: dto.name,
+			cuisine: dto.cuisine
+		}
+
+		// Parse time strings to Date objects for @db.Time(0)
+		if (dto.timeOpened) {
+			const [h, m] = dto.timeOpened.split(':').map(Number)
+			if (isNaN(h) || isNaN(m)) throw new BadRequestException('Invalid timeOpened format')
+			const d = new Date()
+			d.setHours(h, m, 0, 0)
+			updateData.timeOpened = d
+		}
+
+		if (dto.timeClosed) {
+			const [h, m] = dto.timeClosed.split(':').map(Number)
+			if (isNaN(h) || isNaN(m)) throw new BadRequestException('Invalid timeClosed format')
+			const d = new Date()
+			d.setHours(h, m, 0, 0)
+			updateData.timeClosed = d
+		}
+
 		return this.prisma.restaurant.update({
 			where: { idRestaurant: restId },
-			data: dto
+			data: updateData
 		})
 	}
 

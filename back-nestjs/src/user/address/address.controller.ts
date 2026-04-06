@@ -9,8 +9,6 @@ import {
   Param,
   Patch,
   Post,
-  UsePipes,
-  ValidationPipe,
 } from "@nestjs/common";
 import { AddressService } from "./address.service";
 import { CreateAddressDto } from "./dto/create-address.dto";
@@ -35,7 +33,6 @@ export class AddressController {
     return this.addressService.getById(id, userId);
   }
 
-  @UsePipes(new ValidationPipe())
   @HttpCode(201)
   @Auth()
   @Post()
@@ -46,7 +43,6 @@ export class AddressController {
     return this.addressService.create(userId, dto);
   }
 
-  @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Auth()
   @Patch(":id")

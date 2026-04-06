@@ -10,7 +10,7 @@ import { useTransition } from "react";
 
 export function ProfileInfo() {
   const router = useRouter();
-  const { isLoading, refetch, user } = useProfile();
+  const { isLoading, refetch, user, profile } = useProfile();
   const [isPending, startTransition] = useTransition();
 
   const { mutate: mutateLogout, isPending: isLogoutPending } = useMutation({
@@ -39,13 +39,13 @@ export function ProfileInfo() {
       {/* Avatar + Name */}
       <div className="flex items-center gap-4">
         <div className="w-14 h-14 bg-emerald-600/20 rounded-full flex items-center justify-center text-emerald-500 text-xl font-bold">
-          {user?.name?.[0]?.toUpperCase() || "?"}
+          {profile?.name?.[0]?.toUpperCase() || "?"}
         </div>
         <div>
           <h1 className="text-lg font-bold">
-            {user?.name || "Пользователь"}
+            {profile?.name || "Пользователь"}
           </h1>
-          <p className="text-xs text-zinc-400">{user?.email}</p>
+          <p className="text-xs text-zinc-400">{profile?.email}</p>
         </div>
       </div>
 
@@ -53,8 +53,8 @@ export function ProfileInfo() {
       <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-4">
         <p className="text-xs text-zinc-400 mb-1">Email</p>
         <p className="text-sm flex items-center gap-2">
-          {user?.email}
-          {user?.verificationToken ? (
+          {profile?.email}
+          {profile?.verificationToken ? (
             <span className="text-orange-400 text-xs">⏳ Не подтверждён</span>
           ) : (
             <span className="text-emerald-500 text-xs">✓ Подтверждён</span>

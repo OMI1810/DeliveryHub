@@ -7,6 +7,8 @@ import {
 import { Role, Status } from "@prisma/client";
 import { PrismaService } from "@/prisma.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
+import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
+import { PaginationDto } from "./dto/pagination.dto";
 
 @Injectable()
 export class OrderService {
@@ -59,7 +61,7 @@ export class OrderService {
       const createdOrder = await tx.order.create({
         data: {
           clientId: userId,
-          restarauntId: dto.restaurantId,
+          restaurantId: dto.restaurantId,
           addressId: dto.addressId,
           status: "CREATED",
           payStatus: false,
@@ -90,7 +92,7 @@ export class OrderService {
             },
           },
           address: true,
-          restaraunt: true,
+          restaurant: true,
         },
       });
     });
@@ -98,21 +100,40 @@ export class OrderService {
     return order;
   }
 
-  /** Получить все заказы пользователя */
-  async getOrdersByUserId(userId: string) {
-    return this.prisma.order.findMany({
-      where: { clientId: userId },
-      include: {
-        products: {
-          include: {
-            product: true,
+  /** Получить все заказы пользователя с пагинацией */
+  async getOrdersByUserId(userId: string, pagination?: PaginationDto) {
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where: { clientId: userId },
+        include: {
+          products: {
+            include: {
+              product: true,
+            },
           },
+          address: true,
+          restaurant: true,
         },
-        address: true,
-        restaraunt: true,
-      },
-      orderBy: { createAt: "desc" },
-    });
+        orderBy: { createAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({
+        where: { clientId: userId },
+      }),
+    ]);
+
+    return {
+      orders,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   /** Получить заказ по ID */
@@ -126,7 +147,7 @@ export class OrderService {
           },
         },
         address: true,
-        restaraunt: true,
+        restaurant: true,
       },
     });
 
@@ -153,10 +174,10 @@ export class OrderService {
 
     const orders = user?.cashierRestaurant
       ? await this.prisma.order.findMany({
-          where: { restarauntId: user.cashierRestaurantId },
+          where: { restaurantId: user.cashierRestaurantId },
           select: {
             idOrder: true,
-            restarauntId: true,
+            restaurantId: true,
             status: true,
             createAt: true,
           },
@@ -166,7 +187,7 @@ export class OrderService {
     const allOrders = await this.prisma.order.findMany({
       select: {
         idOrder: true,
-        restarauntId: true,
+        restaurantId: true,
         status: true,
         createAt: true,
       },
@@ -190,13 +211,13 @@ export class OrderService {
       ordersForCashierRestaurant: orders,
       allOrdersInDb: allOrders,
       matchCheck: user?.cashierRestaurantId
-        ? allOrders.filter((o) => o.restarauntId === user.cashierRestaurantId)
+        ? allOrders.filter((o) => o.restaurantId === user.cashierRestaurantId)
         : [],
     };
   }
 
-  /** Заказы ресторана для кассира */
-  async getCashierOrders(userId: string) {
+  /** Заказы ресторана для кассира с пагинацией */
+  async getCashierOrders(userId: string, pagination?: PaginationDto) {
     const user = await this.prisma.user.findUnique({
       where: { idUser: userId },
       include: {
@@ -215,33 +236,54 @@ export class OrderService {
       throw new ForbiddenException("Not a cashier");
     }
 
-    const orders = await this.prisma.order.findMany({
-      where: { restarauntId: user.cashierRestaurantId },
-      include: {
-        products: {
-          include: {
-            product: true,
-          },
-        },
-        address: true,
-        restaraunt: true,
-        client: {
-          select: {
-            idUser: true,
-            name: true,
-            surname: true,
-            phone: true,
-          },
-        },
-      },
-      orderBy: { createAt: "desc" },
-    });
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 10;
+    const skip = (page - 1) * limit;
 
-    return orders;
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where: { restaurantId: user.cashierRestaurantId },
+        include: {
+          products: {
+            include: {
+              product: true,
+            },
+          },
+          address: true,
+          restaurant: true,
+          client: {
+            select: {
+              idUser: true,
+              name: true,
+              surname: true,
+              phone: true,
+            },
+          },
+        },
+        orderBy: { createAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({
+        where: { restaurantId: user.cashierRestaurantId },
+      }),
+    ]);
+
+    return {
+      orders,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   /** Сменить статус заказа (кассир) */
-  async updateOrderStatus(userId: string, orderId: string, status: string) {
+  async updateOrderStatus(
+    userId: string,
+    orderId: string,
+    dto: UpdateOrderStatusDto,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { idUser: userId },
       include: { cashierRestaurant: true, role: true },
@@ -265,21 +307,17 @@ export class OrderService {
       throw new NotFoundException("Order not found");
     }
 
-    if (order.restarauntId !== user.cashierRestaurantId) {
+    if (order.restaurantId !== user.cashierRestaurantId) {
       throw new ForbiddenException("Order does not belong to your restaurant");
     }
 
-    await this.prisma.$executeRaw`
-      UPDATE "orders" SET status = ${status}::"Status"
-      WHERE id_order = ${orderId}
-    `;
-
-    return this.prisma.order.findUnique({
+    return this.prisma.order.update({
       where: { idOrder: orderId },
+      data: { status: dto.status },
       include: {
         products: { include: { product: true } },
         address: true,
-        restaraunt: true,
+        restaurant: true,
       },
     });
   }
@@ -309,7 +347,7 @@ export class OrderService {
       throw new NotFoundException("Order not found");
     }
 
-    if (order.restarauntId !== user.cashierRestaurantId) {
+    if (order.restaurantId !== user.cashierRestaurantId) {
       throw new ForbiddenException("Order does not belong to your restaurant");
     }
 
@@ -319,18 +357,13 @@ export class OrderService {
       );
     }
 
-    // Use parameterized raw SQL
-    await this.prisma.$executeRaw`
-      UPDATE "orders" SET status = 'FROM_DELIVERYMAN'::"Status"
-      WHERE id_order = ${orderId}
-    `;
-
-    return this.prisma.order.findUnique({
+    return this.prisma.order.update({
       where: { idOrder: orderId },
+      data: { status: Status.FROM_DELIVERYMAN },
       include: {
         products: { include: { product: true } },
         address: true,
-        restaraunt: true,
+        restaurant: true,
       },
     });
   }

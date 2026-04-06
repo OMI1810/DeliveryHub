@@ -193,8 +193,8 @@ export class UserService {
         a.address AS "pickupAddress",
         o.weight AS "weight"
       FROM orders o
-      LEFT JOIN restaurants r ON r.id_restaurant = o.restaraunt_id
-      LEFT JOIN address_restaurant ar ON ar.restataunt_id = r.id_restaurant
+      LEFT JOIN restaurants r ON r.id_restaurant = o.restaurant_id
+      LEFT JOIN address_restaurant ar ON ar.restaurant_id = r.id_restaurant
       LEFT JOIN addresses a ON a.id_address = ar.address_id
       WHERE o.status = 'COOKING' AND o.deliveryman_id IS NULL
       ORDER BY o.created_at DESC
@@ -218,8 +218,8 @@ export class UserService {
           select: {
             address: true,
             comment: true,
-            cordinatX: true,
-            cordinatY: true,
+            coordinateX: true,
+            coordinateY: true,
           },
         },
         client: {
@@ -240,15 +240,15 @@ export class UserService {
             },
           },
         },
-        restaraunt: {
+        restaurant: {
           include: {
             address: {
               include: {
                 address: {
                   select: {
                     address: true,
-                    cordinatX: true,
-                    cordinatY: true,
+                    coordinateX: true,
+                    coordinateY: true,
                   },
                 },
               },
@@ -274,7 +274,7 @@ export class UserService {
       .join(" ")
       .trim();
 
-    const restaurantAddress = activeOrder.restaraunt.address?.address;
+    const restaurantAddress = activeOrder.restaurant.address?.address;
 
     const result = {
       idOrder: activeOrder.idOrder,
@@ -288,14 +288,14 @@ export class UserService {
       customerName: customerName || "Unknown customer",
       customerAddress: activeOrder.address.address,
       customerCoordinates: {
-        lat: activeOrder.address.cordinatY,
-        lon: activeOrder.address.cordinatX,
+        lat: activeOrder.address.coordinateY,
+        lon: activeOrder.address.coordinateX,
       },
       restaurantAddress: restaurantAddress?.address ?? "Не указан",
       restaurantCoordinates: restaurantAddress
         ? {
-            lat: restaurantAddress.cordinatY,
-            lon: restaurantAddress.cordinatX,
+            lat: restaurantAddress.coordinateY,
+            lon: restaurantAddress.coordinateX,
           }
         : null,
       comments: activeOrder.address.comment,

@@ -9,8 +9,6 @@ import {
   Param,
   Patch,
   Post,
-  UsePipes,
-  ValidationPipe,
 } from "@nestjs/common";
 import { CreateOrganizationDto } from "./dto/create-organization.dto";
 import { UpdateOrganizationDto } from "./dto/update-organization.dto";
@@ -18,7 +16,7 @@ import { OrganizationService } from "./organization.service";
 
 @Controller()
 export class OrganizationController {
-  constructor(private readonly organizationService: OrganizationService) { }
+  constructor(private readonly organizationService: OrganizationService) {}
 
   @Auth()
   @Get("owner/init")
@@ -26,7 +24,6 @@ export class OrganizationController {
     return this.organizationService.getInit(userId);
   }
 
-  @UsePipes(new ValidationPipe())
   @Auth()
   @Post("organizations")
   async createOrganization(
@@ -45,7 +42,6 @@ export class OrganizationController {
     return this.organizationService.getById(id, userId);
   }
 
-  @UsePipes(new ValidationPipe())
   @Auth()
   @Patch("organizations/:id")
   async updateOrganization(

@@ -6,6 +6,19 @@ import {
   ICashierOrder,
 } from "@/types/cashier.types";
 
+export interface ICashierOrdersQuery {
+  page?: number;
+  limit?: number;
+}
+
+export interface IPaginatedCashierOrders {
+  orders: ICashierOrder[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 class CashierService {
   private _CASHIERS = (orgId: string, restId: string) =>
     `/organizations/${orgId}/restaurants/${restId}/cashiers`;
@@ -30,8 +43,11 @@ class CashierService {
   }
 
   // Cashier-facing methods
-  async getOrders() {
-    return instance.get<ICashierOrder[]>("/orders/cashier");
+  async getOrders(query?: ICashierOrdersQuery) {
+    return instance.get<IPaginatedCashierOrders | ICashierOrder[]>(
+      "/orders/cashier",
+      { params: query },
+    );
   }
 
   async updateOrderStatus(orderId: string, status: string) {

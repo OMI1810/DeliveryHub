@@ -53,7 +53,7 @@ export function CheckoutForm({
   const addresses: IAddressUser[] = addressesData?.data || [];
   const selectedAddress = addresses.find(
     (a) => a.addressId === selectedAddressId,
-  );
+  )?.address;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +97,9 @@ export function CheckoutForm({
                   <span className="text-zinc-300">
                     {item.name} × {item.quantity}
                   </span>
-                  <span className="font-medium">{item.price * item.quantity} ₽</span>
+                  <span className="font-medium">
+                    {item.price * item.quantity} ₽
+                  </span>
                 </div>
               ))}
             </div>
@@ -120,7 +122,7 @@ export function CheckoutForm({
                 className="w-full px-3 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               >
                 <option value="">Выберите адрес</option>
-                {addresses.map((item: IAddressUser) => (
+                {addresses.map((item) => (
                   <option key={item.addressId} value={item.addressId}>
                     {item.address.address}
                   </option>
@@ -129,12 +131,10 @@ export function CheckoutForm({
             )}
             {selectedAddress && (
               <p className="text-xs text-zinc-500 mt-1">
-                {selectedAddress.address.flat &&
-                  `Кв. ${selectedAddress.address.flat} · `}
-                {selectedAddress.address.floor &&
-                  `Этаж ${selectedAddress.address.floor} · `}
-                {selectedAddress.address.entrance &&
-                  `Подъезд ${selectedAddress.address.entrance}`}
+                {selectedAddress.flat && `Кв. ${selectedAddress.flat} · `}
+                {selectedAddress.floor && `Этаж ${selectedAddress.floor} · `}
+                {selectedAddress.entrance &&
+                  `Подъезд ${selectedAddress.entrance}`}
               </p>
             )}
           </div>
@@ -142,7 +142,9 @@ export function CheckoutForm({
           {/* Итого */}
           <div className="bg-emerald-600/10 rounded-xl p-4 flex items-center justify-between">
             <span className="font-medium text-sm">Итого</span>
-            <span className="text-xl font-bold text-emerald-500">{total} ₽</span>
+            <span className="text-xl font-bold text-emerald-500">
+              {total} ₽
+            </span>
           </div>
 
           {/* Ошибка */}

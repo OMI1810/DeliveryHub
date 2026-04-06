@@ -1,22 +1,35 @@
 import cartService from "@/services/cart.service";
 import { Cart, CartItem } from "@/types/cart.types";
-import { useState, useCallback } from "react";
-import { notifyCartChange } from "@/components/ui/CartIcon";
+import { useSyncExternalStore, useCallback, useRef } from "react";
+import {
+  notifyCartChange,
+  subscribeToCartChanges,
+} from "@/components/ui/CartIcon";
 
-export function useCart() {
-  const [, rerender] = useState({});
-
-  const forceRerender = useCallback(() => {
-    rerender({});
-    notifyCartChange();
-  }, []);
-
-  // Читаем напрямую при каждом рендере
+function getCartSnapshot(): string {
   const carts = cartService.getCarts();
   const totalItems = carts.reduce(
     (sum, cart) => sum + cart.items.reduce((s, i) => s + i.quantity, 0),
     0,
   );
+  return JSON.stringify({ carts, totalItems });
+}
+
+export function useCart() {
+  const snapshot = useSyncExternalStore(
+    subscribeToCartChanges,
+    getCartSnapshot,
+    getCartSnapshot,
+  );
+
+  const parsedRef = useRef<{ carts: Cart[]; totalItems: number } | null>(null);
+  const parsed = JSON.parse(snapshot) as { carts: Cart[]; totalItems: number };
+
+  if (!parsedRef.current || JSON.stringify(parsedRef.current) !== snapshot) {
+    parsedRef.current = parsed;
+  }
+
+  const { carts, totalItems } = parsedRef.current!;
 
   const addToCart = useCallback(
     (
@@ -26,39 +39,36 @@ export function useCart() {
       quantity = 1,
     ) => {
       cartService.addToCart(item, restaurantId, restaurantName, quantity);
-      forceRerender();
+      notifyCartChange();
     },
-    [forceRerender],
+    [],
   );
 
   const updateQuantity = useCallback(
     (restaurantId: string, productId: string, quantity: number) => {
       cartService.updateQuantity(restaurantId, productId, quantity);
-      forceRerender();
+      notifyCartChange();
     },
-    [forceRerender],
+    [],
   );
 
   const removeFromCart = useCallback(
     (restaurantId: string, productId: string) => {
       cartService.removeFromCart(restaurantId, productId);
-      forceRerender();
+      notifyCartChange();
     },
-    [forceRerender],
+    [],
   );
 
-  const clearCart = useCallback(
-    (restaurantId: string) => {
-      cartService.clearCart(restaurantId);
-      forceRerender();
-    },
-    [forceRerender],
-  );
+  const clearCart = useCallback((restaurantId: string) => {
+    cartService.clearCart(restaurantId);
+    notifyCartChange();
+  }, []);
 
   const clearAll = useCallback(() => {
     cartService.clearAll();
-    forceRerender();
-  }, [forceRerender]);
+    notifyCartChange();
+  }, []);
 
   const getCartTotal = useCallback((restaurantId: string) => {
     return cartService.getCartTotal(restaurantId);

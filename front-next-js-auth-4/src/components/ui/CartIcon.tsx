@@ -5,15 +5,16 @@ import { DASHBOARD_PAGES } from "@/config/pages/dashboard.config";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-const listeners = new Set<() => void>();
+const cartEventTarget = new EventTarget();
 
 export function notifyCartChange() {
-  listeners.forEach((fn) => fn());
+  cartEventTarget.dispatchEvent(new Event("cart-change"));
 }
 
 export function subscribeToCartChanges(fn: () => void) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
+  const handler = () => fn();
+  cartEventTarget.addEventListener("cart-change", handler);
+  return () => cartEventTarget.removeEventListener("cart-change", handler);
 }
 
 export function CartIcon() {

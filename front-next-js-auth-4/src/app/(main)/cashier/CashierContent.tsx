@@ -2,10 +2,13 @@
 
 import { MiniLoader } from "@/components/ui/MiniLoader";
 import { useProfile } from "@/hooks/useProfile";
-import cashierService from "@/services/cashier.service";
+import cashierService, {
+  IPaginatedCashierOrders,
+} from "@/services/cashier.service";
 import { ICashierOrder } from "@/types/cashier.types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { useState } from "react";
 
 const STATUS_LABELS: Record<string, string> = {
   CREATED: "Новый",
@@ -41,12 +44,14 @@ const STATUS_FLOW: Record<
 export function CashierContent() {
   const { user } = useProfile();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   const hasCashierRole = user?.isCashier === true;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cashier-orders"],
-    queryFn: () => cashierService.getOrders(),
+    queryKey: ["cashier-orders", page, limit],
+    queryFn: () => cashierService.getOrders({ page, limit }),
     refetchInterval: 10000,
     enabled: hasCashierRole,
   });
@@ -88,7 +93,15 @@ export function CashierContent() {
     );
   }
 
-  const orders: ICashierOrder[] = data?.data || [];
+  const ordersData = data?.data;
+  const isPaginated =
+    ordersData && typeof ordersData === "object" && "orders" in ordersData;
+  const orders: ICashierOrder[] = isPaginated
+    ? (ordersData as IPaginatedCashierOrders).orders
+    : (ordersData as ICashierOrder[]);
+  const totalPages = isPaginated
+    ? (ordersData as IPaginatedCashierOrders).totalPages
+    : 1;
 
   return (
     <div className="space-y-3">
@@ -100,14 +113,40 @@ export function CashierContent() {
           <p className="text-zinc-400 text-sm">Нет заказов</p>
         </div>
       ) : (
-        orders.map((order) => (
-          <OrderCard
-            key={order.idOrder}
-            order={order}
-            updateStatus={updateStatus}
-            handoverToCourier={handoverToCourier}
-          />
-        ))
+        <>
+          <div className="space-y-3">
+            {orders.map((order) => (
+              <OrderCard
+                key={order.idOrder}
+                order={order}
+                updateStatus={updateStatus}
+                handoverToCourier={handoverToCourier}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="px-3 py-1.5 text-sm bg-zinc-800 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-700 transition-colors"
+              >
+                Назад
+              </button>
+              <span className="text-sm text-zinc-400">
+                {page} / {totalPages}
+              </span>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-3 py-1.5 text-sm bg-zinc-800 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-700 transition-colors"
+              >
+                Вперёд
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -119,8 +158,14 @@ function OrderCard({
   handoverToCourier,
 }: {
   order: ICashierOrder;
-  updateStatus: any;
-  handoverToCourier: any;
+  updateStatus: {
+    mutate: (vars: { orderId: string; status: string }) => void;
+    isPending: boolean;
+  };
+  handoverToCourier: {
+    mutate: (orderId: string) => void;
+    isPending: boolean;
+  };
 }) {
   const flow = STATUS_FLOW[order.status];
   const isHandover = flow?.action === "handover";
@@ -130,9 +175,7 @@ function OrderCard({
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <p className="font-semibold text-sm">
-            #{order.idOrder.slice(-6)}
-          </p>
+          <p className="font-semibold text-sm">#{order.idOrder.slice(-6)}</p>
           <p className="text-xs text-zinc-500">
             {new Date(order.createAt).toLocaleString("ru-RU")}
           </p>
@@ -157,7 +200,8 @@ function OrderCard({
       <div className="border-t border-zinc-700 pt-2 space-y-1">
         {order.products.map((p) => (
           <p key={p.idOrderProduct} className="text-xs text-zinc-300">
-            {p.product.name} × {p.quantity} — {(p.price * p.quantity).toFixed(0)} ₽
+            {p.product.name} × {p.quantity} —{" "}
+            {(p.price * p.quantity).toFixed(0)} ₽
           </p>
         ))}
       </div>
@@ -167,7 +211,8 @@ function OrderCard({
         <p className="font-semibold text-sm">
           {order.products
             .reduce((s, p) => s + p.price * p.quantity, 0)
-            .toFixed(0)} ₽
+            .toFixed(0)}{" "}
+          ₽
         </p>
 
         {flow?.next && order.status !== "DELIVERED" && (

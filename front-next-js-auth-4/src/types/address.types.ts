@@ -6,8 +6,8 @@ export interface IAddress {
   flat?: string | null;
   floor?: string | null;
   comment?: string | null;
-  cordinatY: number;
-  cordinatX: number;
+  coordinateY: number;
+  coordinateX: number;
 }
 
 export interface IAddressUser {

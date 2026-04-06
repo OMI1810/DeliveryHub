@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import orderDiscoveryService from "@/services/order-discovery.service";
+import shiftService from "@/services/shift.service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
@@ -18,6 +19,15 @@ const CourierMap = dynamic(
 export function OrderDiscovery() {
   const queryClient = useQueryClient();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Check if courier is online
+  const { data: shiftData } = useQuery({
+    queryKey: ["shift-state"],
+    queryFn: () => shiftService.fetchShiftState(),
+    refetchInterval: 10000,
+  });
+
+  const isOnline = shiftData?.data?.isOnline ?? false;
 
   const {
     data: activeOrderData,
@@ -149,7 +159,7 @@ export function OrderDiscovery() {
             <span className="font-semibold">{activeOrder.customerName}</span>
           </p>
 
-          {/* Карта: ресторан при COURIER_ACCEPTED, клиент при FROM_DELIVERYMAN */}
+          {/* Карта: ресторан при COURIER_ACCEPTED, обе точки при FROM_DELIVERYMAN */}
           {activeOrder.status === "COURIER_ACCEPTED" &&
             activeOrder.restaurantCoordinates &&
             activeOrder.restaurantCoordinates.lat !== 0 &&
@@ -160,11 +170,15 @@ export function OrderDiscovery() {
                 </p>
                 <CourierMap
                   key={`restaurant-${activeOrder.idOrder}`}
-                  center={[
-                    activeOrder.restaurantCoordinates.lat,
-                    activeOrder.restaurantCoordinates.lon,
+                  points={[
+                    {
+                      lat: activeOrder.restaurantCoordinates.lat,
+                      lon: activeOrder.restaurantCoordinates.lon,
+                      label: activeOrder.restaurantAddress,
+                      color: "restaurant" as const,
+                    },
                   ]}
-                  label={activeOrder.restaurantAddress}
+                  showRoute={false}
                 />
               </div>
             )}
@@ -180,18 +194,51 @@ export function OrderDiscovery() {
             )}
 
           {activeOrder.status === "FROM_DELIVERYMAN" &&
-            activeOrder.customerCoordinates && (
+            activeOrder.customerCoordinates &&
+            activeOrder.restaurantCoordinates && (
               <div>
                 <p className="text-xs text-zinc-400 mb-1">
                   📍 Доставить: {activeOrder.customerAddress}
                 </p>
                 <CourierMap
-                  key={`customer-${activeOrder.idOrder}`}
-                  center={[
-                    activeOrder.customerCoordinates.lat,
-                    activeOrder.customerCoordinates.lon,
+                  key={`delivery-${activeOrder.idOrder}`}
+                  points={[
+                    {
+                      lat: activeOrder.restaurantCoordinates.lat,
+                      lon: activeOrder.restaurantCoordinates.lon,
+                      label: `Ресторан: ${activeOrder.restaurantAddress}`,
+                      color: "restaurant" as const,
+                    },
+                    {
+                      lat: activeOrder.customerCoordinates.lat,
+                      lon: activeOrder.customerCoordinates.lon,
+                      label: `Клиент: ${activeOrder.customerAddress}`,
+                      color: "customer" as const,
+                    },
                   ]}
-                  label={activeOrder.customerAddress}
+                  showRoute
+                />
+              </div>
+            )}
+
+          {activeOrder.status === "FROM_DELIVERYMAN" &&
+            activeOrder.customerCoordinates &&
+            !activeOrder.restaurantCoordinates && (
+              <div>
+                <p className="text-xs text-zinc-400 mb-1">
+                  📍 Доставить: {activeOrder.customerAddress}
+                </p>
+                <CourierMap
+                  key={`customer-only-${activeOrder.idOrder}`}
+                  points={[
+                    {
+                      lat: activeOrder.customerCoordinates.lat,
+                      lon: activeOrder.customerCoordinates.lon,
+                      label: activeOrder.customerAddress,
+                      color: "customer" as const,
+                    },
+                  ]}
+                  showRoute={false}
                 />
               </div>
             )}
@@ -246,10 +293,14 @@ export function OrderDiscovery() {
               <button
                 type="button"
                 onClick={() => acceptOrder(order.idOrder)}
-                disabled={isAcceptPending || Boolean(activeOrder)}
+                disabled={isAcceptPending || Boolean(activeOrder) || !isOnline}
                 className="w-full bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-medium active:bg-emerald-700 disabled:opacity-60"
               >
-                {isAcceptPending ? "Принятие..." : "Принять заказ"}
+                {!isOnline
+                  ? "Начните смену"
+                  : isAcceptPending
+                    ? "Принятие..."
+                    : "Принять заказ"}
               </button>
             </div>
           ))}

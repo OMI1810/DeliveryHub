@@ -29,12 +29,14 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
 export interface IOrderProduct {
   idOrderProduct: string;
   quantity: number;
+  price: number;
   product: {
     idProduct: string;
     name: string;
     description: string | null;
     calories: number | null;
     timeCooking: number | null;
+    price: number;
   };
 }
 
@@ -47,8 +49,8 @@ export interface IOrderAddress {
   flat: string | null;
   floor: string | null;
   comment: string | null;
-  cordinatY: number;
-  cordinatX: number;
+  coordinateY: number;
+  coordinateX: number;
 }
 
 // Restaurant in order
@@ -70,9 +72,9 @@ export interface IOrder {
   createAt: string;
   clientId: string;
   deliverymanId: string | null;
-  restarauntId: string;
+  restaurantId: string;
   addressId: string;
   products: IOrderProduct[];
   address: IOrderAddress;
-  restaraunt: IOrderRestaurant;
+  restaurant: IOrderRestaurant;
 }

@@ -7,12 +7,15 @@ import {
 } from "@/types/order.types";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import { OrderStatusStepper } from "@/components/ui/OrderStatusStepper";
+import Link from "next/link";
 
 interface OrderCardProps {
   order: IOrder;
+  showDetails?: boolean;
 }
 
-export function OrderCard({ order }: OrderCardProps) {
+export function OrderCard({ order, showDetails = false }: OrderCardProps) {
   const statusColor = ORDER_STATUS_COLORS[order.status];
   const statusLabel = ORDER_STATUS_LABELS[order.status];
 
@@ -35,9 +38,17 @@ export function OrderCard({ order }: OrderCardProps) {
         </span>
       </div>
 
+      {/* Status stepper */}
+      <div className="mb-3">
+        <OrderStatusStepper
+          currentStatus={order.status}
+          compact={!showDetails}
+        />
+      </div>
+
       {/* Restaurant */}
       <p className="text-xs text-zinc-300 mb-1">
-        <span className="text-zinc-500">Ресторан:</span> {order.restaraunt.name}
+        <span className="text-zinc-500">Ресторан:</span> {order.restaurant.name}
       </p>
 
       {/* Address */}
@@ -48,10 +59,7 @@ export function OrderCard({ order }: OrderCardProps) {
       {/* Products */}
       <div className="border-t border-zinc-700 pt-3">
         {order.products.map((item) => (
-          <p
-            key={item.idOrderProduct}
-            className="text-xs text-zinc-400"
-          >
+          <p key={item.idOrderProduct} className="text-xs text-zinc-400">
             {item.product.name} × {item.quantity}
           </p>
         ))}
@@ -70,6 +78,16 @@ export function OrderCard({ order }: OrderCardProps) {
           <span className="text-xs text-zinc-500">{order.weight} кг</span>
         )}
       </div>
+
+      {/* Details link */}
+      {showDetails && (
+        <Link
+          href={`/orders/${order.idOrder}`}
+          className="mt-3 block text-center text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+        >
+          Подробнее →
+        </Link>
+      )}
     </div>
   );
 }

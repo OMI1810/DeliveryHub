@@ -14,7 +14,7 @@ export class AddressService {
   constructor(
     private prisma: PrismaService,
     private geocoodingService: GeocoodingService,
-  ) { }
+  ) {}
 
   async getAllByUserId(userId: string) {
     return this.prisma.addressUser.findMany({
@@ -38,18 +38,18 @@ export class AddressService {
   }
 
   async create(userId: string, dto: CreateAddressDto) {
-    let lat: number
-    let lon: number
+    let lat: number;
+    let lon: number;
 
     // Если переданы прямые координаты (с карты) — используем их
     if (dto.lat !== undefined && dto.lon !== undefined) {
-      lat = dto.lat
-      lon = dto.lon
+      lat = dto.lat;
+      lon = dto.lon;
     } else {
       // Иначе геокодируем адрес
-      const geoResult = await this.geocodeAddress(dto)
-      lat = geoResult.lat
-      lon = geoResult.lon
+      const geoResult = await this.geocodeAddress(dto);
+      lat = geoResult.lat;
+      lon = geoResult.lon;
     }
 
     const address = await this.prisma.address.create({
@@ -60,8 +60,8 @@ export class AddressService {
         flat: dto.flat,
         floor: dto.floor,
         comment: dto.comment,
-        cordinatY: lat,
-        cordinatX: lon,
+        coordinateY: lat,
+        coordinateX: lon,
         addressUser: {
           create: { userId },
         },
@@ -92,8 +92,8 @@ export class AddressService {
       if (fullAddress.length > 0) {
         const { lat, lon } =
           await this.geocoodingService.geocodeOSM(fullAddress);
-        updateData.cordinatY = lat;
-        updateData.cordinatX = lon;
+        updateData.coordinateY = lat;
+        updateData.coordinateX = lon;
       }
     }
 

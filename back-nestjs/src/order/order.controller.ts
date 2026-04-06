@@ -8,13 +8,13 @@ import {
   Param,
   Patch,
   Post,
-  UsePipes,
-  ValidationPipe,
+  Query,
 } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { OrderService } from "./order.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
+import { PaginationDto } from "./dto/pagination.dto";
 
 @Controller("orders")
 export class OrderController {
@@ -22,16 +22,22 @@ export class OrderController {
 
   @Auth()
   @Get()
-  async getMyOrders(@CurrentUser("idUser") userId: string) {
-    return this.orderService.getOrdersByUserId(userId);
+  async getMyOrders(
+    @CurrentUser("idUser") userId: string,
+    @Query() pagination?: PaginationDto,
+  ) {
+    return this.orderService.getOrdersByUserId(userId, pagination);
   }
 
   // === Cashier endpoints (before :id route!) ===
 
   @Auth(Role.CASHIER)
   @Get("cashier")
-  async getCashierOrders(@CurrentUser("idUser") userId: string) {
-    return this.orderService.getCashierOrders(userId);
+  async getCashierOrders(
+    @CurrentUser("idUser") userId: string,
+    @Query() pagination?: PaginationDto,
+  ) {
+    return this.orderService.getCashierOrders(userId, pagination);
   }
 
   @Auth()
@@ -44,7 +50,6 @@ export class OrderController {
   }
 
   @Auth()
-  @UsePipes(new ValidationPipe())
   @HttpCode(201)
   @Post()
   async createOrder(
@@ -55,14 +60,13 @@ export class OrderController {
   }
 
   @Auth(Role.CASHIER)
-  @UsePipes(new ValidationPipe())
   @Patch(":orderId/status")
   async updateOrderStatus(
     @CurrentUser("idUser") userId: string,
     @Param("orderId") orderId: string,
     @Body() dto: UpdateOrderStatusDto,
   ) {
-    return this.orderService.updateOrderStatus(userId, orderId, dto.status);
+    return this.orderService.updateOrderStatus(userId, orderId, dto);
   }
 
   @Auth(Role.CASHIER)

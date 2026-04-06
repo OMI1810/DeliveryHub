@@ -8,8 +8,6 @@ import {
   Param,
   Patch,
   Post,
-  UsePipes,
-  ValidationPipe,
 } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { UserService } from "./user.service";
@@ -24,7 +22,6 @@ export class UserController {
     return this.userService.getById(id);
   }
 
-  @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Auth()
   @Patch("update-email")

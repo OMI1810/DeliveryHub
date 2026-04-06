@@ -54,14 +54,14 @@ model Shift {
 model Address {
   idAddress         String             @id @default(cuid()) @map("id_address")
   address           String
-  cordinatY         Float
-  cordinatX         Float
+  coordinateY       Float              @map("coordinate_y")
+  coordinateX       Float              @map("coordinate_x")
   comment           String?
   doorphone         String?
   entrance          Int?
   flat              String?
   floor             String?
-  addressRestaraunt AddressRestaraunt?
+  addressRestaurant AddressRestaurant?
   addressUser       AddressUser[]
   orders            Order[]
 
@@ -78,8 +78,8 @@ model AddressUser {
   @@map("address_user")
 }
 
-model AddressRestaraunt {
-  restaurantId String     @unique @map("restataunt_id")
+model AddressRestaurant {
+  restaurantId String     @unique @map("restaurant_id")
   addressId    String     @unique @map("address_id")
   address      Address    @relation(fields: [addressId], references: [idAddress], onDelete: Cascade)
   restaurant   Restaurant @relation(fields: [restaurantId], references: [idRestaurant], onDelete: Cascade)
@@ -94,7 +94,7 @@ model Order {
   status        Status
   createAt      DateTime       @default(now()) @map("created_at")
   clientId      String         @map("client_id")
-  restarauntId  String         @map("restaraunt_id")
+  restaurantId  String         @map("restaurant_id")
   addressId     String         @map("address_id")
   weight        Float?         @map("weight")
   deliverymanId String?        @map("deliveryman_id")
@@ -102,7 +102,7 @@ model Order {
   address       Address        @relation(fields: [addressId], references: [idAddress])
   client        User           @relation("ClientOrders", fields: [clientId], references: [idUser])
   deliveryman   User?          @relation("CourierOrders", fields: [deliverymanId], references: [idUser])
-  restaraunt    Restaurant     @relation(fields: [restarauntId], references: [idRestaurant])
+  restaurant    Restaurant     @relation(fields: [restaurantId], references: [idRestaurant])
 
   @@map("orders")
 }
@@ -155,7 +155,7 @@ model Restaurant {
   timeOpened     DateTime           @map("time_opened") @db.Time(0)
   timeClosed     DateTime           @map("time_closed") @db.Time(0)
   organizationId String             @map("organization_id")
-  address        AddressRestaraunt?
+  address        AddressRestaurant?
   orders         Order[]
   products       Product[]
   organization   Organization       @relation(fields: [organizationId], references: [idOrganization])
@@ -176,7 +176,7 @@ enum Role {
 enum Status {
   CREATED
   COOKING
+  COURIER_ACCEPTED
   FROM_DELIVERYMAN
   DELIVERED
-  COURIER_ACCEPTED
 }

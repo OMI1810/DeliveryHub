@@ -9,8 +9,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  console.log("12312");
-
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
